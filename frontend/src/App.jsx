@@ -12,6 +12,8 @@ import AddProduct from "./pages/AddProduct";
 import BulkUploadInventory from "./pages/BulkUploadInventory";
 import EditProduct from "./pages/EditProduct";
 import Billing from "./pages/Billing";
+import UserManagement from "./pages/UserManagement";
+import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 
 /* ================= LAYOUT ================= */
 import Sidebar from "./components/layout/Sidebar";
@@ -26,16 +28,38 @@ import "./assets/styles/thermal.css";
 function App() {
   return (
     <Routes>
-
       {/* ================= PUBLIC ================= */}
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
 
-      {/* ================= DASHBOARD ================= */}
+      {/* ================= SUPER ADMIN ROUTES ================= */}
+      <Route
+        path="/super-admin-dashboard"
+        element={
+          <ProtectedRoute roles={['super_admin']}>
+            <SuperAdminLayout>
+              <SuperAdminDashboard />
+            </SuperAdminLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/users"
+        element={
+          <ProtectedRoute roles={['super_admin']}>
+            <SuperAdminLayout>
+              <UserManagement />
+            </SuperAdminLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* ================= ADMIN/STAFF ROUTES ================= */}
       <Route
         path="/dashboard"
         element={
-          <ProtectedRoute roles={["admin", "staff"]}>
+          <ProtectedRoute roles={['admin', 'staff']}>
             <LayoutWrapper showTopbar>
               <Dashboard />
             </LayoutWrapper>
@@ -43,11 +67,10 @@ function App() {
         }
       />
 
-      {/* ================= INVENTORY ================= */}
       <Route
         path="/inventory"
         element={
-          <ProtectedRoute roles={["admin", "staff"]}>
+          <ProtectedRoute roles={['admin', 'staff']}>
             <LayoutWrapper>
               <Inventory />
             </LayoutWrapper>
@@ -58,7 +81,7 @@ function App() {
       <Route
         path="/inventory/add"
         element={
-          <ProtectedRoute roles={["admin"]}>
+          <ProtectedRoute roles={['admin']}>
             <LayoutWrapper>
               <AddProduct />
             </LayoutWrapper>
@@ -69,7 +92,7 @@ function App() {
       <Route
         path="/inventory/edit/:id"
         element={
-          <ProtectedRoute roles={["admin"]}>
+          <ProtectedRoute roles={['admin']}>
             <LayoutWrapper>
               <EditProduct />
             </LayoutWrapper>
@@ -80,7 +103,7 @@ function App() {
       <Route
         path="/inventory/bulk-upload"
         element={
-          <ProtectedRoute roles={["admin"]}>
+          <ProtectedRoute roles={['admin']}>
             <LayoutWrapper>
               <BulkUploadInventory />
             </LayoutWrapper>
@@ -88,11 +111,10 @@ function App() {
         }
       />
 
-      {/* ================= BILLING ================= */}
       <Route
         path="/billing"
         element={
-          <ProtectedRoute roles={["admin", "staff"]}>
+          <ProtectedRoute roles={['admin', 'staff']}>
             <LayoutWrapper>
               <Billing />
             </LayoutWrapper>
@@ -100,11 +122,10 @@ function App() {
         }
       />
 
-      {/* ================= CUSTOMERS ================= */}
       <Route
         path="/customers"
         element={
-          <ProtectedRoute roles={["admin", "staff"]}>
+          <ProtectedRoute roles={['admin', 'staff']}>
             <LayoutWrapper>
               <Customers />
             </LayoutWrapper>
@@ -112,11 +133,10 @@ function App() {
         }
       />
 
-      {/* ================= SUPPLIERS ================= */}
       <Route
         path="/suppliers"
         element={
-          <ProtectedRoute roles={["admin"]}>
+          <ProtectedRoute roles={['admin']}>
             <LayoutWrapper>
               <Suppliers />
             </LayoutWrapper>
@@ -124,11 +144,10 @@ function App() {
         }
       />
 
-      {/* ================= REPORTS ================= */}
       <Route
         path="/reports"
         element={
-          <ProtectedRoute roles={["admin"]}>
+          <ProtectedRoute roles={['admin']}>
             <LayoutWrapper>
               <Reports />
             </LayoutWrapper>
@@ -136,20 +155,36 @@ function App() {
         }
       />
 
+      {/* ================= FALLBACK ================= */}
+      <Route path="*" element={<Home />} />
     </Routes>
   );
 }
 
-/* ================= LAYOUT WRAPPER ================= */
+/* ================= REGULAR LAYOUT WRAPPER ================= */
 function LayoutWrapper({ children, showTopbar = false }) {
   return (
     <div className="min-h-screen bg-gray-100">
       <Sidebar />
-
       <div className="ml-64 min-h-screen flex flex-col">
         {showTopbar && <Topbar />}
-
         <div className={`flex-1 p-6 ${showTopbar ? "mt-16" : ""}`}>
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ================= SUPER ADMIN LAYOUT ================= */
+function SuperAdminLayout({ children }) {
+  return (
+    <div className="min-h-screen bg-gray-100">
+      {/* You can create a different sidebar for super admin if needed */}
+      <Sidebar /> 
+      <div className="ml-64 min-h-screen flex flex-col">
+        <Topbar />
+        <div className="flex-1 p-6 mt-16">
           {children}
         </div>
       </div>

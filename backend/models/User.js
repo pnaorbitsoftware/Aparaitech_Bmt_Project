@@ -24,13 +24,21 @@ const userSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ['user', 'store-admin', 'staff'],
-        default: 'user' 
+        enum: ['super_admin', 'admin', 'staff', 'user'],
+        default: 'user'
     },
     isActive: {
         type: Boolean,
         default: true
-    }
+    },
+    createdBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+    permissions: [{
+        type: String,
+        enum: ['manage_users', 'manage_roles', 'delete_data', 'export_data', 'view_reports']
+    }]
 }, {
     timestamps: true
 });

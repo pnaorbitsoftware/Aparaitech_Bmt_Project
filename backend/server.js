@@ -6,6 +6,11 @@ const fs = require("fs"); // Added for directory check
 require("dotenv").config();
 
 const app = express();
+// Add this with other routes
+
+
+// Mount with other routes
+
 
 /* ======================
    CORS CONFIG
@@ -99,6 +104,7 @@ const startServer = async () => {
     const bulkUploadRoutes = require("./routes/bulkUploadRoutes");
     const offerRoutes = require("./routes/offerRoutes");
     const testRoutes = require("./routes/testRoutes");
+    const userRoutes = require("./routes/userRoutes");
 
     // Mount routes
     app.use("/api/auth", authRoutes);
@@ -113,6 +119,7 @@ const startServer = async () => {
     app.use("/api/bulk-upload", bulkUploadRoutes);
     app.use("/api/offers", offerRoutes);
     app.use("/api/test", testRoutes);
+    app.use("/api/users", userRoutes);
 
     /* ======================
        HEALTH CHECK

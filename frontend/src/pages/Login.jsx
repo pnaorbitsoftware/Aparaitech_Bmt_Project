@@ -4,7 +4,6 @@ import {
   FaEye,
   FaEyeSlash,
   FaStore,
-  FaUserShield,
   FaUser,
   FaUsers,
 } from "react-icons/fa";
@@ -29,12 +28,18 @@ function Login() {
     setLoading(true);
 
     try {
-      const res = await API.post("/auth/login", {
+      // ✅ Send ONLY what your backend expects
+      const loginData = {
         email,
         password,
-        userType, // normal | store
-        role: userType === "store" ? role : "user",
-      });
+        role: userType === "store" ? role : "user"
+      };
+
+      console.log("📤 Sending login data:", loginData);
+
+      const res = await API.post("/auth/login", loginData);
+
+      console.log("📥 Login response:", res.data);
 
       const { token, user } = res.data;
 
@@ -43,12 +48,27 @@ function Login() {
         return;
       }
 
+      // Save to localStorage
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
 
-      navigate("/dashboard", { replace: true });
+      console.log("👤 User role:", user.role);
+      console.log("💾 Token saved:", !!token);
+      console.log("💾 User saved:", user.name);
+
+      // ✅ Redirect based on role
+      if (user.role === "super_admin") {
+        console.log("➡️ Redirecting to super admin dashboard");
+        navigate("/super-admin-dashboard", { replace: true });
+      } else if (user.role === "admin" || user.role === "staff") {
+        console.log("➡️ Redirecting to regular dashboard");
+        navigate("/dashboard", { replace: true });
+      } else {
+        console.log("➡️ Redirecting to dashboard (default)");
+        navigate("/dashboard", { replace: true });
+      }
     } catch (err) {
-      console.error("LOGIN ERROR:", err);
+      console.error("❌ LOGIN ERROR:", err);
       setError(
         err.response?.data?.message || "Server not reachable"
       );
@@ -122,15 +142,15 @@ function Login() {
 
             <button
               type="button"
-              onClick={() => setRole("store_admin")}
+              onClick={() => setRole("admin")}
               className={`py-2 rounded-xl text-sm font-semibold transition
                 ${
-                  role === "store_admin"
+                  role === "admin"
                     ? "bg-emerald-500 text-white"
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
             >
-              Store Admin
+              Admin
             </button>
 
             <button
@@ -165,6 +185,7 @@ function Login() {
               onChange={(e) => setEmail(e.target.value)}
               className="w-full mt-1 px-4 py-3 rounded-xl border focus:ring-2 focus:ring-emerald-400 outline-none"
               required
+              placeholder="superadmin@example.com"
             />
           </div>
 
@@ -178,6 +199,7 @@ function Login() {
               onChange={(e) => setPassword(e.target.value)}
               className="w-full mt-1 px-4 py-3 rounded-xl border focus:ring-2 focus:ring-emerald-400 outline-none"
               required
+              placeholder="••••••••"
             />
             <span
               onClick={() => setShowPassword(!showPassword)}
@@ -195,6 +217,14 @@ function Login() {
             {loading ? "Logging in..." : "Continue"}
           </button>
         </form>
+
+        {/* ================= DEFAULT CREDENTIALS HINT ================= */}
+        <div className="mt-6 text-center text-xs text-gray-500 space-y-1">
+          <p className="font-semibold text-emerald-600">Demo Credentials:</p>
+          <p>Super Admin: superadmin@example.com / SuperAdmin@123</p>
+          <p>Admin: admin@example.com / password123</p>
+          <p>Staff: staff@example.com / staff123</p>
+        </div>
 
         <p className="text-center text-xs text-gray-500 mt-6">
           © 2026 SmartStore. All rights reserved.
