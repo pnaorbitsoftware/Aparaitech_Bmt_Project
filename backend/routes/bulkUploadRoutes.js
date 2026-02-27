@@ -3,14 +3,11 @@ const router = express.Router();
 const multer = require("multer");
 const csv = require("csv-parser");
 const fs = require("fs");
-const db = require("../db");
+const Product = require("../models/Product");
+const mongoose = require("mongoose");
 
-// Upload config
 const upload = multer({ dest: "uploads/" });
 
-/* ======================================
-   BULK INVENTORY UPLOAD (CSV)
-====================================== */
 router.post("/inventory", upload.single("file"), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: "CSV file required" });
@@ -19,12 +16,11 @@ router.post("/inventory", upload.single("file"), async (req, res) => {
   const results = [];
   let inserted = 0;
   let failed = 0;
-  let conn;
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
   try {
-    conn = await db.getConnection();
-    await conn.beginTransaction();
-
     // Read CSV
     await new Promise((resolve, reject) => {
       fs.createReadStream(req.file.path)
@@ -34,7 +30,7 @@ router.post("/inventory", upload.single("file"), async (req, res) => {
         .on("error", reject);
     });
 
-    // Insert rows
+    // Process each row
     for (const row of results) {
       const { name, sku, category, price, stock, expiry } = row;
 
@@ -44,42 +40,33 @@ router.post("/inventory", upload.single("file"), async (req, res) => {
       }
 
       try {
-        await conn.query(
-          `
-          INSERT INTO products (name, sku, category, price, stock, expiry)
-          VALUES (?, ?, ?, ?, ?, ?)
-          `,
-          [
-            name,
-            sku,
-            category || null,
-            Number(price),
-            Number(stock),
-            expiry || null
-          ]
-        );
-
+        await Product.create([{
+          name,
+          sku,
+          category: category || null,
+          price: Number(price),
+          stock: Number(stock),
+          expiry_date: expiry || null,
+          is_active: 1
+        }], { session });
         inserted++;
       } catch (err) {
+        // Duplicate SKU or validation error
         failed++;
       }
     }
 
-    await conn.commit();
+    await session.commitTransaction();
+    session.endSession();
 
-    res.json({
-      success: true,
-      inserted,
-      failed
-    });
+    res.json({ success: true, inserted, failed });
 
   } catch (err) {
-    if (conn) await conn.rollback();
+    await session.abortTransaction();
+    session.endSession();
     console.error("❌ BULK UPLOAD ERROR:", err);
     res.status(500).json({ message: err.message });
-
   } finally {
-    if (conn) conn.release();
     fs.unlinkSync(req.file.path);
   }
 });

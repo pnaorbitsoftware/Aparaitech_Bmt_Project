@@ -18,7 +18,7 @@ The system helps manage inventory, billing, customers, suppliers, and sales repo
 ## Tech Stack
 - Frontend: React (Vite), Tailwind CSS
 - Backend: Node.js, Express
-- Database: MySQL
+- Database: MongoDB
 
 ---
 ## Project Structure

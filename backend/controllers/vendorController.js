@@ -1,14 +1,30 @@
-const db = require("../db");
+const Vendor = require("../models/Vendor");
 
 /* =========================
    GET ALL VENDORS
 ========================= */
 exports.getVendors = async (req, res) => {
   try {
-    const [rows] = await db.query(
-      "SELECT * FROM vendors ORDER BY id DESC"
-    );
-    res.json(rows);
+    const vendors = await Vendor.find().sort({ createdAt: -1 });
+
+    // Convert MongoDB _id to id for frontend
+    const vendorsList = vendors.map(v => ({
+      id: v._id,                     // ✅ now frontend gets id
+      company_name: v.company_name,
+      category: v.category,
+      contact_person: v.contact_person,
+      phone: v.phone,
+      email: v.email,
+      account_manager: v.account_manager,
+      payment_due: v.payment_due,
+      status: v.status,
+      address: v.address,
+      createdBy: v.createdBy,
+      createdAt: v.createdAt,
+      updatedAt: v.updatedAt
+    }));
+
+    res.json(vendorsList);            // ✅ send array directly
   } catch (err) {
     console.error("FETCH VENDORS ERROR:", err);
     res.status(500).json({ message: "Failed to fetch vendors" });
@@ -32,37 +48,47 @@ exports.addVendor = async (req, res) => {
 
   if (!company_name || !phone) {
     return res.status(400).json({
+      success: false,
       message: "Company name and phone are required"
     });
   }
 
   try {
-    const [result] = await db.query(
-      `
-      INSERT INTO vendors
-      (company_name, category, contact_person, phone, email, account_manager, payment_due, address)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `,
-      [
-        company_name,
-        category || null,
-        contact_person || null,
-        phone,
-        email || null,
-        account_manager || null,
-        payment_due || 0,
-        address || null
-      ]
-    );
+    // Create new vendor
+    const vendor = await Vendor.create({
+      company_name,
+      category: category || null,
+      contact_person: contact_person || null,
+      phone,
+      email: email || null,
+      account_manager: account_manager || null,
+      payment_due: payment_due || 0,
+      address: address || null,
+      createdBy: req.user?.id // If you have user info from token
+    });
 
-    res.json({
+    res.status(201).json({
       success: true,
-      id: result.insertId
+      message: "Vendor added successfully",
+      data: vendor
     });
 
   } catch (err) {
     console.error("ADD VENDOR ERROR:", err);
-    res.status(500).json({ message: "Failed to add vendor" });
+    
+    // Handle duplicate key error (if email is unique)
+    if (err.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: "Vendor with this email already exists"
+      });
+    }
+
+    res.status(500).json({ 
+      success: false,
+      message: "Failed to add vendor",
+      error: err.message 
+    });
   }
 };
 
@@ -71,42 +97,48 @@ exports.addVendor = async (req, res) => {
 ========================= */
 exports.updateVendor = async (req, res) => {
   const { id } = req.params;
-  const v = req.body;
+  const updateData = req.body;
 
   try {
-    await db.query(
-      `
-      UPDATE vendors SET
-        company_name = ?,
-        category = ?,
-        contact_person = ?,
-        phone = ?,
-        email = ?,
-        account_manager = ?,
-        payment_due = ?,
-        status = ?,
-        address = ?
-      WHERE id = ?
-      `,
-      [
-        v.company_name,
-        v.category || null,
-        v.contact_person || null,
-        v.phone,
-        v.email || null,
-        v.account_manager || null,
-        v.payment_due || 0,
-        v.status || "ACTIVE",
-        v.address || null,
-        id
-      ]
+    // Find vendor by ID and update
+    const vendor = await Vendor.findByIdAndUpdate(
+      id,
+      updateData,
+      { 
+        new: true, // Return the updated document
+        runValidators: true // Run validation on update
+      }
     );
 
-    res.json({ success: true });
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: "Vendor not found"
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Vendor updated successfully",
+      data: vendor
+    });
 
   } catch (err) {
     console.error("UPDATE VENDOR ERROR:", err);
-    res.status(500).json({ message: "Failed to update vendor" });
+    
+    // Handle invalid ID format
+    if (err.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid vendor ID format"
+      });
+    }
+
+    res.status(500).json({ 
+      success: false,
+      message: "Failed to update vendor",
+      error: err.message 
+    });
   }
 };
 
@@ -117,15 +149,35 @@ exports.deleteVendor = async (req, res) => {
   const { id } = req.params;
 
   try {
-    await db.query(
-      "DELETE FROM vendors WHERE id = ?",
-      [id]
-    );
+    const vendor = await Vendor.findByIdAndDelete(id);
 
-    res.json({ success: true });
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: "Vendor not found"
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Vendor deleted successfully"
+    });
 
   } catch (err) {
     console.error("DELETE VENDOR ERROR:", err);
-    res.status(500).json({ message: "Failed to delete vendor" });
+    
+    // Handle invalid ID format
+    if (err.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid vendor ID format"
+      });
+    }
+
+    res.status(500).json({ 
+      success: false,
+      message: "Failed to delete vendor",
+      error: err.message 
+    });
   }
 };

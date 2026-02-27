@@ -12,10 +12,13 @@ exports.generateInvoice = async ({
   gst,
   total
 }) => {
-  const filePath = path.join(
-    __dirname,
-    `../public/bills/${billNo}.pdf`
-  );
+  // Ensure the bills directory exists
+  const dir = path.join(__dirname, "../public/bills");
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+
+  const filePath = path.join(dir, `${billNo}.pdf`);
 
   const doc = new PDFDocument({ margin: 40 });
   doc.pipe(fs.createWriteStream(filePath));
@@ -48,5 +51,7 @@ exports.generateInvoice = async ({
 
   doc.end();
 
-  return `/bills/${billNo}.pdf`; // 👈 PUBLIC URL
+  // Return public URL – make sure you serve this folder statically in server.js
+  // e.g., app.use("/bills", express.static(path.join(__dirname, "public/bills")));
+  return `/bills/${billNo}.pdf`;
 };

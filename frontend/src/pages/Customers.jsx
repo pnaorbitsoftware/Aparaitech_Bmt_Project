@@ -5,8 +5,12 @@ function Customers() {
   const [customers, setCustomers] = useState([]);
   const [search, setSearch] = useState("");
 
-  // Modal
+  // Enroll Modal
   const [showModal, setShowModal] = useState(false);
+
+  // Details Modal
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
 
   // Form
   const [name, setName] = useState("");
@@ -24,6 +28,18 @@ function Customers() {
       setCustomers(res.data);
     } catch {
       alert("Failed to load customers ❌");
+    }
+  };
+
+  // View customer details
+  const handleViewDetails = async (id) => {
+    try {
+      const res = await API.get(`/customers/${id}`);
+      setSelectedCustomer(res.data.data);
+      setShowDetailsModal(true);
+    } catch (err) {
+      alert("Failed to load customer details ❌");
+      console.error(err);
     }
   };
 
@@ -49,7 +65,7 @@ function Customers() {
     }
   };
 
-  // 🗑 DELETE CUSTOMER
+  // Delete customer
   const handleDeleteCustomer = async (id, name) => {
     const confirm = window.confirm(
       `Are you sure you want to delete "${name}"?\nThis action cannot be undone.`
@@ -137,7 +153,10 @@ function Customers() {
               </div>
 
               <div className="flex gap-2">
-                <button className="px-4 py-2 rounded-xl bg-gray-100 hover:bg-green-100 text-green-600 font-semibold">
+                <button
+                  onClick={() => handleViewDetails(customer.id)}
+                  className="px-4 py-2 rounded-xl bg-gray-100 hover:bg-green-100 text-green-600 font-semibold"
+                >
                   Details
                 </button>
 
@@ -197,6 +216,89 @@ function Customers() {
                 Enroll
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Details Modal */}
+      {showDetailsModal && selectedCustomer && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 w-96 max-h-[80vh] overflow-y-auto shadow-xl">
+            <h2 className="text-xl font-bold mb-4">Customer Details</h2>
+            
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm text-gray-500">Name</label>
+                <p className="font-semibold">{selectedCustomer.name}</p>
+              </div>
+              
+              <div>
+                <label className="text-sm text-gray-500">Phone</label>
+                <p className="font-semibold">{selectedCustomer.phone}</p>
+              </div>
+              
+              {selectedCustomer.email && (
+                <div>
+                  <label className="text-sm text-gray-500">Email</label>
+                  <p className="font-semibold">{selectedCustomer.email}</p>
+                </div>
+              )}
+              
+              <div>
+                <label className="text-sm text-gray-500">Loyalty ID</label>
+                <p className="font-mono text-sm">{selectedCustomer.loyalty_id}</p>
+              </div>
+              
+              <div>
+                <label className="text-sm text-gray-500">Points</label>
+                <p className="font-semibold text-green-600">{selectedCustomer.points} pts</p>
+              </div>
+              
+              <div>
+                <label className="text-sm text-gray-500">Address</label>
+                <p>{selectedCustomer.address || "—"}</p>
+              </div>
+              
+              <div>
+                <label className="text-sm text-gray-500">GST Number</label>
+                <p>{selectedCustomer.gst_number || "—"}</p>
+              </div>
+              
+              <div>
+                <label className="text-sm text-gray-500">Total Purchases</label>
+                <p className="font-semibold">{selectedCustomer.total_purchases}</p>
+              </div>
+              
+              <div>
+                <label className="text-sm text-gray-500">Lifetime Spent</label>
+                <p className="font-semibold">₹{selectedCustomer.lifetime_spent}</p>
+              </div>
+              
+              {selectedCustomer.recent_transactions?.length > 0 && (
+                <div>
+                  <label className="text-sm text-gray-500">Recent Transactions</label>
+                  <div className="mt-2 space-y-2 max-h-40 overflow-y-auto">
+                    {selectedCustomer.recent_transactions.map(t => (
+                      <div key={t.id} className="text-sm border-b pb-1 flex justify-between">
+                        <span className="font-mono">{t.bill_no}</span>
+                        <span className="font-semibold">₹{t.total}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              <div className="text-xs text-gray-400 mt-2">
+                Customer since: {new Date(selectedCustomer.created_at).toLocaleDateString()}
+              </div>
+            </div>
+            
+            <button
+              onClick={() => setShowDetailsModal(false)}
+              className="mt-6 w-full bg-gray-200 hover:bg-gray-300 py-2 rounded-xl font-semibold"
+            >
+              Close
+            </button>
           </div>
         </div>
       )}
