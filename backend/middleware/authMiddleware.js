@@ -7,6 +7,7 @@ const verifyToken = (req, res, next) => {
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res.status(401).json({
+      success: false,
       message: "Unauthorized - No token provided"
     });
   }
@@ -27,6 +28,7 @@ const verifyToken = (req, res, next) => {
   } catch (err) {
     console.error("❌ TOKEN ERROR:", err.message);
     return res.status(403).json({
+      success: false,
       message: "Forbidden - Invalid or expired token"
     });
   }

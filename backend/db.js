@@ -1,26 +1,28 @@
-const mysql = require("mysql2/promise");
+const mongoose = require('mongoose');
 
-const pool = mysql.createPool({
-  host: "localhost",
-  user: "root",
-  password: "Priyanka@1109",
-  database: "store_db",
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
-});
+const connectDB = async () => {
+    try {
+        console.log('⏳ Connecting to MongoDB Atlas...');
+        
+        // Remove deprecated options
+        const conn = await mongoose.connect(process.env.MONGODB_URI);
 
-/* =========================
-   DB CONNECTION CHECK
-========================= */
-(async () => {
-  try {
-    const connection = await pool.getConnection();
-    console.log("✅ MySQL Database Connected Successfully");
-    connection.release();
-  } catch (err) {
-    console.error("❌ MySQL Connection Failed:", err.message);
-  }
-})();
+        console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+        console.log(`📊 Database: ${conn.connection.name}`);
+        
+        mongoose.connection.on('error', (err) => {
+            console.error('❌ MongoDB connection error:', err);
+        });
 
-module.exports = pool;
+        mongoose.connection.on('disconnected', () => {
+            console.log('⚠️ MongoDB disconnected');
+        });
+
+        return conn;
+    } catch (error) {
+        console.error('❌ MongoDB Connection Error:', error.message);
+        process.exit(1);
+    }
+};
+
+module.exports = connectDB;

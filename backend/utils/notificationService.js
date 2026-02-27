@@ -1,7 +1,8 @@
 const twilio = require("twilio");
 
+// ✅ Use correct env variable names
 const client = twilio(
-  process.env.TWILIO_SID,
+  process.env.TWILIO_ACCOUNT_SID,  // was TWILIO_SID
   process.env.TWILIO_AUTH_TOKEN
 );
 
