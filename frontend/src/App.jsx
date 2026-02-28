@@ -14,6 +14,8 @@ import EditProduct from "./pages/EditProduct";
 import Billing from "./pages/Billing";
 import UserManagement from "./pages/UserManagement";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
+import StoreAdmins from "./pages/superadmin/StoreAdmins";
+
 
 /* ================= LAYOUT ================= */
 import Sidebar from "./components/layout/Sidebar";
@@ -54,6 +56,16 @@ function App() {
           </ProtectedRoute>
         }
       />
+      <Route
+  path="/admins"
+  element={
+    <ProtectedRoute roles={["super_admin"]}>
+      <SuperAdminLayout>
+        <UserManagement roleFilter="admin" /> {/* Shows ONLY admins */}
+      </SuperAdminLayout>
+    </ProtectedRoute>
+  }
+/>
 
       {/* ================= ADMIN/STAFF/SUPER_ADMIN ROUTES ================= */}
       <Route

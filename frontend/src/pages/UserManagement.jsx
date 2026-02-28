@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { API } from "../services/api";
 
-function UserManagement() {
+function UserManagement({ roleFilter = null }) { // Add roleFilter prop
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -13,7 +13,7 @@ function UserManagement() {
     name: "",
     email: "",
     password: "",
-    role: "staff",
+    role: roleFilter || "staff", // Default role based on filter
     permissions: []
   });
 
@@ -36,14 +36,26 @@ function UserManagement() {
 
   useEffect(() => {
     loadUsers();
-  }, []);
+  }, [roleFilter]); // Reload when filter changes
 
-  // Load all users
+  // Load users (with optional filtering)
   const loadUsers = async () => {
     try {
       setLoading(true);
       const res = await API.get("/users");
-      setUsers(res.data.data || []);
+      let userData = res.data.data || [];
+      
+      // Apply role filter if specified
+      if (roleFilter) {
+        userData = userData.filter(user => user.role === roleFilter);
+      }
+      
+      setUsers(userData);
+      
+      // Update page title based on filter
+      if (roleFilter === 'admin') {
+        document.title = 'Store Admins - SmartStore';
+      }
     } catch (err) {
       console.error("Load users error:", err);
       alert("Failed to load users");
@@ -75,7 +87,7 @@ function UserManagement() {
       name: "",
       email: "",
       password: "",
-      role: "staff",
+      role: roleFilter || "staff",
       permissions: []
     });
     setShowModal(true);
@@ -87,7 +99,7 @@ function UserManagement() {
     setFormData({
       name: user.name || "",
       email: user.email || "",
-      password: "", // Don't populate password
+      password: "",
       role: user.role || "staff",
       permissions: user.permissions || []
     });
@@ -108,16 +120,15 @@ function UserManagement() {
       }
 
       if (editingUser) {
-        // Update existing user
         await API.put(`/users/${editingUser._id}`, {
           name: formData.name,
           email: formData.email,
           role: formData.role,
-          permissions: formData.permissions
+          permissions: formData.permissions,
+          isActive: editingUser.isActive
         });
         alert("User updated successfully ✅");
       } else {
-        // Create new user
         await API.post("/users", formData);
         alert("User created successfully ✅");
       }
@@ -171,20 +182,32 @@ function UserManagement() {
     return found?.color || "gray";
   };
 
+  // Get page title based on filter
+  const getPageTitle = () => {
+    if (roleFilter === 'admin') return "Store Admins";
+    if (roleFilter === 'staff') return "Staff Management";
+    return "User Management";
+  };
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">User Management</h1>
-          <p className="text-gray-500 mt-1">Manage all users and their permissions</p>
+          <h1 className="text-3xl font-bold">{getPageTitle()}</h1>
+          <p className="text-gray-500 mt-1">
+            {roleFilter === 'admin' 
+              ? "Manage store administrators and their permissions"
+              : "Manage all users and their permissions"}
+          </p>
         </div>
         
         <button
           onClick={handleCreate}
           className="bg-purple-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-purple-700 shadow-lg flex items-center gap-2"
         >
-          <span>+</span> Create New User
+          <span>+</span> 
+          {roleFilter === 'admin' ? "Create New Admin" : "Create New User"}
         </button>
       </div>
 
@@ -192,7 +215,7 @@ function UserManagement() {
       <div className="bg-white p-4 rounded-xl shadow">
         <input
           type="text"
-          placeholder="Search users by name, email or role..."
+          placeholder={`Search ${roleFilter === 'admin' ? 'admins' : 'users'}...`}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
@@ -215,13 +238,13 @@ function UserManagement() {
             {loading ? (
               <tr>
                 <td colSpan="5" className="p-8 text-center text-gray-500">
-                  Loading users...
+                  Loading...
                 </td>
               </tr>
             ) : filteredUsers.length === 0 ? (
               <tr>
                 <td colSpan="5" className="p-8 text-center text-gray-500">
-                  No users found
+                  No {roleFilter === 'admin' ? 'admins' : 'users'} found
                 </td>
               </tr>
             ) : (
@@ -292,12 +315,12 @@ function UserManagement() {
         </table>
       </div>
 
-      {/* Create/Edit Modal */}
+      {/* Create/Edit Modal - same as before */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">
-              {editingUser ? 'Edit User' : 'Create New User'}
+              {editingUser ? 'Edit User' : `Create New ${roleFilter === 'admin' ? 'Admin' : 'User'}`}
             </h2>
 
             {/* Name */}
@@ -341,14 +364,15 @@ function UserManagement() {
               </div>
             )}
 
-            {/* Role */}
+            {/* Role (disabled if filter is active) */}
             <div className="mb-4">
               <label className="block text-sm font-medium mb-1">Role</label>
               <select
                 name="role"
                 value={formData.role}
                 onChange={handleInputChange}
-                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                disabled={!!roleFilter} // Disable if filter is active
+                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none disabled:bg-gray-100"
               >
                 {roles.map(role => (
                   <option key={role.value} value={role.value}>
@@ -356,6 +380,9 @@ function UserManagement() {
                   </option>
                 ))}
               </select>
+              {roleFilter && (
+                <p className="text-xs text-gray-500 mt-1">Role is fixed to {roleFilter}</p>
+              )}
             </div>
 
             {/* Permissions */}
@@ -382,7 +409,7 @@ function UserManagement() {
                 onClick={handleSubmit}
                 className="flex-1 bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700"
               >
-                {editingUser ? 'Update User' : 'Create User'}
+                {editingUser ? 'Update' : 'Create'}
               </button>
               
               <button
