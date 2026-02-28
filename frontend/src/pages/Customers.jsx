@@ -149,7 +149,7 @@ function Customers() {
                 <p className="text-xs text-gray-400 uppercase">
                   Life-time Spent
                 </p>
-                <p className="font-bold">₹{customer.total_spent}</p>
+                <p className="font-bold">₹{customer.lifetime_spent || 0}</p>
               </div>
 
               <div className="flex gap-2">

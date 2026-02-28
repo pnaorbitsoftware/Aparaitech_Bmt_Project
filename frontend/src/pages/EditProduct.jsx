@@ -15,7 +15,7 @@ export default function EditProduct() {
 
   const loadProduct = async () => {
     try {
-      const res = await API.get(`/api/inventory/${id}`);
+      const res = await API.get(`/inventory/${id}`);
       setProduct(res.data);
     } catch {
       toast.error("Failed to load product");
@@ -27,7 +27,7 @@ export default function EditProduct() {
 
   const handleSave = async () => {
     try {
-      await API.put(`/api/inventory/${id}`, product);
+      await API.put(`/inventory/${id}`, product);
       toast.success("Product updated successfully");
       navigate("/inventory");
     } catch {
@@ -148,9 +148,9 @@ export default function EditProduct() {
               type="date"
               className="w-full rounded-lg border border-gray-300 px-3 py-2
                          focus:outline-none focus:ring-2 focus:ring-green-500"
-              value={product.expiry?.slice(0, 10) || ""}
+              value={product.expiryDate?.slice(0, 10) || ""}
               onChange={(e) =>
-                setProduct({ ...product, expiry: e.target.value })
+                setProduct({ ...product, expiryDate: e.target.value })
               }
             />
           </div>

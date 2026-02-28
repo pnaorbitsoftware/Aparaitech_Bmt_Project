@@ -3,12 +3,14 @@ const router = express.Router();
 const multer = require("multer");
 const csv = require("csv-parser");
 const fs = require("fs");
+const verifyToken = require("../middleware/authMiddleware");
+const allowRole = require("../middleware/roleMiddleware");
 const Product = require("../models/Product");
 const mongoose = require("mongoose");
 
 const upload = multer({ dest: "uploads/" });
 
-router.post("/inventory", upload.single("file"), async (req, res) => {
+router.post("/inventory", verifyToken, allowRole(["admin", "super_admin"]), upload.single("file"), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: "CSV file required" });
   }

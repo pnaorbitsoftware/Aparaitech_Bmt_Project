@@ -11,7 +11,7 @@ const inventoryController = require("../controllers/inventoryController");
 router.get(
   "/",
   authMiddleware,
-  allowRoles(["admin", "staff"]),
+  allowRoles(["admin", "staff", "super_admin"]),
   inventoryController.getAllProducts
 );
 
@@ -21,7 +21,7 @@ router.get(
 router.get(
   "/:id",
   authMiddleware,
-  allowRoles(["admin", "staff"]),
+  allowRoles(["admin", "staff", "super_admin"]),
   inventoryController.getProductById
 );
 
@@ -31,7 +31,7 @@ router.get(
 router.post(
   "/",
   authMiddleware,
-  allowRoles(["admin"]),
+  allowRoles(["admin", "super_admin"]),
   inventoryController.addProduct
 );
 
@@ -41,7 +41,7 @@ router.post(
 router.put(
   "/:id",
   authMiddleware,
-  allowRoles(["admin"]),
+  allowRoles(["admin", "super_admin"]),
   inventoryController.updateProduct
 );
 
@@ -51,7 +51,7 @@ router.put(
 router.delete(
   "/:id",
   authMiddleware,
-  allowRoles(["admin"]),
+  allowRoles(["admin", "super_admin"]),
   inventoryController.archiveProduct
 );
 

@@ -13,11 +13,11 @@ function Login() {
   const navigate = useNavigate();
 
   /* ================= STATE ================= */
-  const [userType, setUserType] = useState("normal"); // normal | store
+  const [userType, setUserType] = useState("store"); // Changed default to "store"
   const [role, setRole] = useState("super_admin"); // only for store users
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("superadmin@example.com"); // Pre-filled for testing
+  const [password, setPassword] = useState("SuperAdmin@123"); // Pre-filled for testing
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -28,10 +28,10 @@ function Login() {
     setLoading(true);
 
     try {
-      // ✅ Send ONLY what your backend expects
+      // ✅ Send EXACT data format
       const loginData = {
-        email,
-        password,
+        email: email.trim(),
+        password: password.trim(),
         role: userType === "store" ? role : "user"
       };
 
@@ -48,7 +48,7 @@ function Login() {
         return;
       }
 
-      // Save to localStorage
+      // ✅ Save to localStorage
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
 
@@ -56,19 +56,22 @@ function Login() {
       console.log("💾 Token saved:", !!token);
       console.log("💾 User saved:", user.name);
 
-      // ✅ Redirect based on role
-      if (user.role === "super_admin") {
-        console.log("➡️ Redirecting to super admin dashboard");
-        navigate("/super-admin-dashboard", { replace: true });
-      } else if (user.role === "admin" || user.role === "staff") {
-        console.log("➡️ Redirecting to regular dashboard");
-        navigate("/dashboard", { replace: true });
-      } else {
-        console.log("➡️ Redirecting to dashboard (default)");
-        navigate("/dashboard", { replace: true });
-      }
+      // ✅ Use window.location.href for reliable redirect
+      setTimeout(() => {
+        if (user.role === "super_admin") {
+          console.log("➡️ Redirecting to super admin dashboard");
+          window.location.href = "/super-admin-dashboard";
+        } else if (user.role === "admin" || user.role === "staff") {
+          console.log("➡️ Redirecting to regular dashboard");
+          window.location.href = "/dashboard";
+        } else {
+          console.log("➡️ Redirecting to dashboard (default)");
+          window.location.href = "/dashboard";
+        }
+      }, 100); // Small delay to ensure localStorage is set
     } catch (err) {
       console.error("❌ LOGIN ERROR:", err);
+      console.error("Error response:", err.response?.data);
       setError(
         err.response?.data?.message || "Server not reachable"
       );

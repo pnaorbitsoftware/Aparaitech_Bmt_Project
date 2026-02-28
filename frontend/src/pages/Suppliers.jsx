@@ -27,8 +27,13 @@ function Suppliers() {
   }, []);
 
   const loadVendors = async () => {
-    const res = await API.get("/vendors");
-    setVendors(res.data);
+    try {
+      const res = await API.get("/vendors");
+      setVendors(res.data || []);
+    } catch (err) {
+      console.error("Failed to load vendors:", err);
+      alert("Failed to load vendors");
+    }
   };
 
   // Search filter

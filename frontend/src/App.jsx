@@ -55,11 +55,11 @@ function App() {
         }
       />
 
-      {/* ================= ADMIN/STAFF ROUTES ================= */}
+      {/* ================= ADMIN/STAFF/SUPER_ADMIN ROUTES ================= */}
       <Route
         path="/dashboard"
         element={
-          <ProtectedRoute roles={['admin', 'staff']}>
+          <ProtectedRoute roles={['admin', 'staff', 'super_admin']}>
             <LayoutWrapper showTopbar>
               <Dashboard />
             </LayoutWrapper>
@@ -70,7 +70,7 @@ function App() {
       <Route
         path="/inventory"
         element={
-          <ProtectedRoute roles={['admin', 'staff']}>
+          <ProtectedRoute roles={['admin', 'staff', 'super_admin']}>
             <LayoutWrapper>
               <Inventory />
             </LayoutWrapper>
@@ -81,7 +81,7 @@ function App() {
       <Route
         path="/inventory/add"
         element={
-          <ProtectedRoute roles={['admin']}>
+          <ProtectedRoute roles={['admin', 'super_admin']}>
             <LayoutWrapper>
               <AddProduct />
             </LayoutWrapper>
@@ -92,7 +92,7 @@ function App() {
       <Route
         path="/inventory/edit/:id"
         element={
-          <ProtectedRoute roles={['admin']}>
+          <ProtectedRoute roles={['admin', 'super_admin']}>
             <LayoutWrapper>
               <EditProduct />
             </LayoutWrapper>
@@ -103,7 +103,7 @@ function App() {
       <Route
         path="/inventory/bulk-upload"
         element={
-          <ProtectedRoute roles={['admin']}>
+          <ProtectedRoute roles={['admin', 'super_admin']}>
             <LayoutWrapper>
               <BulkUploadInventory />
             </LayoutWrapper>
@@ -114,7 +114,7 @@ function App() {
       <Route
         path="/billing"
         element={
-          <ProtectedRoute roles={['admin', 'staff']}>
+          <ProtectedRoute roles={['admin', 'staff', 'super_admin']}>
             <LayoutWrapper>
               <Billing />
             </LayoutWrapper>
@@ -125,7 +125,7 @@ function App() {
       <Route
         path="/customers"
         element={
-          <ProtectedRoute roles={['admin', 'staff']}>
+          <ProtectedRoute roles={['admin', 'staff', 'super_admin']}>
             <LayoutWrapper>
               <Customers />
             </LayoutWrapper>
@@ -136,7 +136,7 @@ function App() {
       <Route
         path="/suppliers"
         element={
-          <ProtectedRoute roles={['admin']}>
+          <ProtectedRoute roles={['admin', 'super_admin']}>
             <LayoutWrapper>
               <Suppliers />
             </LayoutWrapper>
@@ -147,7 +147,7 @@ function App() {
       <Route
         path="/reports"
         element={
-          <ProtectedRoute roles={['admin']}>
+          <ProtectedRoute roles={['admin', 'super_admin']}>
             <LayoutWrapper>
               <Reports />
             </LayoutWrapper>

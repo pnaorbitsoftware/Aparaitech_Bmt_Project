@@ -1,8 +1,10 @@
 const express = require("express");
 const router = express.Router();
+const verifyToken = require("../middleware/authMiddleware");
+const allowRole = require("../middleware/roleMiddleware");
 const Category = require("../models/Category");
 
-router.get("/", async (req, res) => {
+router.get("/", verifyToken, allowRole(["admin", "staff", "super_admin"]), async (req, res) => {
   try {
     const categories = await Category.find().sort({ name: 1 });
     res.json(categories);

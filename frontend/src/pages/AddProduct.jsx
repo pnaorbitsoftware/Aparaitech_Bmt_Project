@@ -26,7 +26,7 @@ function AddProduct() {
     category: "Fruits",
     price: "",
     stock: "",
-    expiry: ""
+    expiryDate: ""
   });
 
   const handleSave = async () => {
@@ -39,7 +39,7 @@ function AddProduct() {
 
     try {
       setLoading(true);
-      await API.post("/api/inventory", {
+      await API.post("/inventory", {
         ...product,
         price: Number(price),
         stock: Number(stock)
@@ -134,8 +134,8 @@ function AddProduct() {
             <input
               type="date"
               className="mt-1 border p-3 w-full rounded-xl focus:ring-2 focus:ring-green-500 outline-none"
-              value={product.expiry}
-              onChange={e => setProduct({ ...product, expiry: e.target.value })}
+              value={product.expiryDate}
+              onChange={e => setProduct({ ...product, expiryDate: e.target.value })}
             />
           </div>
         </div>

@@ -14,13 +14,21 @@ function Reports() {
   }, []);
 
   const loadReports = async () => {
-    const res = await API.get("/reports");
-    setTransactions(res.data);
+    try {
+      const res = await API.get("/reports");
+      setTransactions(res.data || []);
+    } catch (err) {
+      console.error("Failed to load reports:", err);
+    }
   };
 
   const loadStats = async () => {
-    const res = await API.get("/reports/stats");
-    setStats(res.data);
+    try {
+      const res = await API.get("/reports/stats");
+      setStats(res.data || { totalOrders: 0, totalRevenue: 0 });
+    } catch (err) {
+      console.error("Failed to load report stats:", err);
+    }
   };
 
   /* ===============================

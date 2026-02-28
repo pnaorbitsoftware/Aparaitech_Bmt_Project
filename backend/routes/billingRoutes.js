@@ -10,10 +10,10 @@ const { sendWhatsApp } = require("../utils/notificationService");
 const mongoose = require("mongoose");
 
 // Generate bill (already MongoDB)
-router.post("/", verifyToken, allowRole(["admin", "staff"]), createBill);
+router.post("/", verifyToken, allowRole(["admin", "staff", "super_admin"]), createBill);
 
 // Refund / Cancel bill
-router.post("/:id/refund", verifyToken, allowRole(["admin"]), async (req, res) => {
+router.post("/:id/refund", verifyToken, allowRole(["admin", "super_admin"]), async (req, res) => {
   const { id } = req.params;
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -57,7 +57,7 @@ router.post("/:id/refund", verifyToken, allowRole(["admin"]), async (req, res) =
 });
 
 // Send bill via WhatsApp (no DB changes)
-router.post("/send-whatsapp", verifyToken, allowRole(["admin", "staff"]), async (req, res) => {
+router.post("/send-whatsapp", verifyToken, allowRole(["admin", "staff", "super_admin"]), async (req, res) => {
   const { phone, billNo, total } = req.body;
   if (!phone || !billNo || !total) {
     return res.status(400).json({ message: "Phone, bill number and total are required" });

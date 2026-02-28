@@ -20,7 +20,7 @@ function BulkUploadInventory() {
     try {
       setLoading(true);
       const res = await API.post(
-        "/api/bulk-upload/inventory",
+        "/bulk-upload/inventory",
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );

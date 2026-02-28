@@ -12,14 +12,14 @@ const customerController = require("../controllers/customerController");
 router.get(
   "/check",
   verifyToken,
-  allowRole(["admin", "staff"]),
+  allowRole(["admin", "staff", "super_admin"]),
   customerController.checkCustomerByPhone
 );
 
 router.get(
   "/:id", 
   verifyToken, 
-  allowRole(["admin", "staff"]),
+  allowRole(["admin", "staff", "super_admin"]),
    customerController.getCustomerById
 );
 
@@ -30,7 +30,7 @@ router.get(
 router.get(
   "/",
   verifyToken,
-  allowRole(["admin", "staff"]),
+  allowRole(["admin", "staff", "super_admin"]),
   customerController.getAllCustomers
 );
 
@@ -41,7 +41,7 @@ router.get(
 router.post(
   "/",
   verifyToken,
-  allowRole(["admin", "staff"]),
+  allowRole(["admin", "staff", "super_admin"]),
   customerController.enrollCustomer
 );
 
@@ -51,7 +51,7 @@ router.post(
 router.delete(
   "/:id",
   verifyToken,
-  allowRole(["admin"]),
+  allowRole(["admin", "super_admin"]),
   customerController.deleteCustomer
 );
 

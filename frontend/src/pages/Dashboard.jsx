@@ -52,30 +52,49 @@ function Dashboard() {
     ]);
   };
 
-  /* ✅ FIXED ENDPOINTS */
   const loadStats = async () => {
-    const res = await API.get("/dashboard/stats");
-    setStats(res.data.stats || {});
+    try {
+      const res = await API.get("/dashboard/stats");
+      setStats(res.data.stats || res.data || {});
+    } catch (err) {
+      console.error("Failed to load stats:", err);
+    }
   };
 
   const loadWeeklyRevenue = async () => {
-    const res = await API.get("/dashboard/weekly-revenue");
-    setWeeklyRevenue(res.data || []);
+    try {
+      const res = await API.get("/dashboard/weekly-revenue");
+      setWeeklyRevenue(res.data || []);
+    } catch (err) {
+      console.error("Failed to load weekly revenue:", err);
+    }
   };
 
   const loadPaymentChart = async () => {
-    const res = await API.get("/dashboard/payment-chart");
-    setPaymentData(res.data || []);
+    try {
+      const res = await API.get("/dashboard/payment-chart");
+      setPaymentData(res.data || []);
+    } catch (err) {
+      console.error("Failed to load payment chart:", err);
+    }
   };
 
   const loadRecentTransactions = async () => {
-    const res = await API.get("/dashboard/recent-transactions");
-    setRecentTx(res.data || []);
+    try {
+      const res = await API.get("/dashboard/recent-transactions");
+      setRecentTx(res.data || []);
+    } catch (err) {
+      console.error("Failed to load recent transactions:", err);
+    }
   };
 
   const loadLowStock = async () => {
-    const res = await API.get("/dashboard/low-stock");
-    setLowStock(res.data || { count: 0, items: [] });
+    try {
+      const res = await API.get("/dashboard/low-stock");
+      setLowStock(res.data || { count: 0, items: [] });
+    } catch (err) {
+      console.error("Failed to load low stock:", err);
+    }
   };
 
   const getInsight = () => {

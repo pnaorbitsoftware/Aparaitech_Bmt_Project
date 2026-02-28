@@ -1,12 +1,13 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const User = require("../models/User"); // ✅ Import MongoDB User model
+const User = require("../models/User");
+const verifyToken = require("../middleware/authMiddleware");
+const allowRole = require("../middleware/roleMiddleware");
 
 const router = express.Router();
 
-// ✅ REGISTER ROUTE (you were missing this!)
-router.post("/register", async (req, res) => {
+router.post("/register", verifyToken, allowRole(["super_admin"]), async (req, res) => {
   const { name, email, password, role } = req.body;
 
   try {
