@@ -33,7 +33,7 @@ const superAdminMenu = [
   { label: "Stores", path: "/stores", icon: Store },
   { label: "Store Admins", path: "/admins", icon: UserCheck },
   
-  { label: "Customers", path: "/superadmin/users", icon: UserCircle },
+  { label: "Registered Customers", path: "/registered-customers", icon: UserCircle },
   { label: "Delivery Partners", path: "/delivery", icon: Truck },
   { label: "Categories", path: "/categories", icon: Layers },
   { label: "Products", path: "/products", icon: Package },
@@ -226,4 +226,4 @@ function SidebarItem({ to, icon, label }) {
   );
 }
 
-export default Sidebar;
+export default Sidebar;     

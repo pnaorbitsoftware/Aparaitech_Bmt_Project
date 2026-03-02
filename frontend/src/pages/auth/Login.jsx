@@ -7,7 +7,7 @@ import {
   FaUser,
   FaUsers,
 } from "react-icons/fa";
-import { API } from "../services/api";
+import { API } from "../../services/api";
 
 function Login() {
   const navigate = useNavigate();

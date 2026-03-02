@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { UserCheck } from "lucide-react";
+import { useNavigate } from "react-router-dom"; // Make sure this is imported
 
 function StoreAdmins() {
+  const navigate = useNavigate(); // Add this line
   const [admins, setAdmins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -9,7 +11,7 @@ function StoreAdmins() {
   useEffect(() => {
     const fetchStoreAdmins = async () => {
       try {
-        const token = localStorage.getItem("token"); // 🔑 JWT
+        const token = localStorage.getItem("token");
 
         const res = await fetch(
           "http://localhost:5000/api/users/admins",
@@ -35,6 +37,11 @@ function StoreAdmins() {
 
     fetchStoreAdmins();
   }, []);
+
+  // ✅ Function to navigate to store admin profile
+  const handleViewProfile = (adminId) => {
+    navigate(`/store-admin/${adminId}`);
+  };
 
   if (loading) {
     return <p className="p-6">Loading store admins...</p>;
@@ -70,13 +77,15 @@ function StoreAdmins() {
               <th className="text-left px-6 py-3">Email</th>
               <th className="text-left px-6 py-3">Store</th>
               <th className="text-left px-6 py-3">Status</th>
+              <th className="text-left px-6 py-3">Actions</th>
             </tr>
           </thead>
           <tbody>
             {admins.map((admin) => (
               <tr
                 key={admin._id}
-                className="border-t hover:bg-slate-50 transition"
+                className="border-t hover:bg-slate-50 transition cursor-pointer"
+                onClick={() => handleViewProfile(admin._id)} // ✅ Make row clickable
               >
                 <td className="px-6 py-3 font-semibold">
                   {admin.name}
@@ -96,8 +105,19 @@ function StoreAdmins() {
                           : "bg-red-100 text-red-700"
                       }`}
                   >
-                    {admin.status.toUpperCase()}
+                    {admin.status?.toUpperCase() || "ACTIVE"}
                   </span>
+                </td>
+                <td className="px-6 py-3">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent double trigger
+                      handleViewProfile(admin._id);
+                    }}
+                    className="px-3 py-1 bg-indigo-100 text-indigo-600 rounded-lg hover:bg-indigo-200 text-xs font-medium"
+                  >
+                    View Store
+                  </button>
                 </td>
               </tr>
             ))}

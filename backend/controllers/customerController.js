@@ -226,18 +226,3 @@ exports.deleteCustomer = async (req, res) => {
     });
   }
 };
-// controllers/customer.controller.js
-export const getNormalUsers = async (req, res) => {
-  try {
-    const [users] = await db.query(`
-      SELECT id, name, mobile, reward_points, lifetime_spent
-      FROM customers
-      WHERE customer_type = 'USER'
-    `);
-
-    res.json(users);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Failed to fetch users" });
-  }
-};

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import AdminProfile from "../../pages/AdminProfile";
+import AdminProfile from "../../pages/users/AdminProfile";  // ✅ Fixed import
 
 function Topbar() {
   const [showProfile, setShowProfile] = useState(false);
@@ -51,13 +51,13 @@ function Topbar() {
           </div>
         </button>
 
-        {showProfile && (
+        {/* {showProfile && (
           <AdminProfile
             admin={user}
             onClose={() => setShowProfile(false)}
             onLogout={handleLogout}
           />
-        )}
+        )} */}
       </div>
 
     </div>

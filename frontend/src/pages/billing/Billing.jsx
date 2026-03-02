@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { API } from "../services/api";
-import { getExpiryInfo } from "../utils/expiryUtils";
+import { API } from "../../services/api";
+import { getExpiryInfo } from "../../utils/expiryUtils";
 import { QRCodeCanvas } from "qrcode.react";
 
 function Billing() {

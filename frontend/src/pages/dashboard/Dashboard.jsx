@@ -22,7 +22,7 @@ import {
 } from "recharts";
 
 import { useEffect, useState } from "react";
-import { API } from "../services/api";
+import { API } from "../../services/api";
 import { useNavigate } from "react-router-dom";
 
 function Dashboard() {

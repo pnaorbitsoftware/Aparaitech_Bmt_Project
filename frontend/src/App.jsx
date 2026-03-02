@@ -1,24 +1,39 @@
 import { Routes, Route } from "react-router-dom";
 
 /* ================= PAGES ================= */
+// Auth
+import Login from "./pages/auth/Login";
+import Register from "./pages/auth/Register";
+
+// Dashboard
+import Dashboard from "./pages/dashboard/Dashboard";
+import SuperAdminDashboard from "./pages/dashboard/SuperAdminDashboard";
+
+// Users
+import UserManagement from "./pages/users/UserManagement";
+import AdminStaff from "./pages/users/AdminStaff";
+import StoreAdmins from "./pages/users/StoreAdmins";
+import StoreAdminProfile from "./pages/users/StoreAdminProfile";
+
+// Customers
+import Customers from "./pages/customers/Customers";
+import RegisteredCustomers from "./pages/customers/RegisteredCustomers";
+
+// Inventory
+import Inventory from "./pages/inventory/Inventory";
+import AddProduct from "./pages/inventory/AddProduct";
+import EditProduct from "./pages/inventory/EditProduct";
+import BulkUploadInventory from "./pages/inventory/BulkUploadInventory";
+
+// Billing & Suppliers
+import Billing from "./pages/billing/Billing";
+import Suppliers from "./pages/suppliers/Suppliers";
+
+// Reports
+import Reports from "./pages/reports/Reports";
+
+// Home
 import Home from "./pages/Home";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-
-import Dashboard from "./pages/Dashboard";
-import Inventory from "./pages/Inventory";
-import Customers from "./pages/Customers";
-import Suppliers from "./pages/Suppliers";
-import Reports from "./pages/Reports";
-import AddProduct from "./pages/AddProduct";
-import BulkUploadInventory from "./pages/BulkUploadInventory";
-import EditProduct from "./pages/EditProduct";
-import Billing from "./pages/Billing";
-
-import UserManagement from "./pages/UserManagement";
-import SuperAdminDashboard from "./pages/SuperAdminDashboard";
-import StoreAdmins from "./pages/superadmin/StoreAdmins";
-import Customers from "./pages/superadmin/Customers";
 
 /* ================= LAYOUT ================= */
 import Sidebar from "./components/layout/Sidebar";
@@ -33,12 +48,12 @@ import "./assets/styles/thermal.css";
 function App() {
   return (
     <Routes>
-      {/* ================= PUBLIC ================= */}
+      {/* ================= PUBLIC ROUTES ================= */}
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
-      {/* ================= SUPER ADMIN ================= */}
+      {/* ================= SUPER ADMIN ONLY ROUTES ================= */}
       <Route
         path="/super-admin-dashboard"
         element={
@@ -50,7 +65,7 @@ function App() {
         }
       />
 
-      {/* All users */}
+      {/* User Management */}
       <Route
         path="/users"
         element={
@@ -62,7 +77,7 @@ function App() {
         }
       />
 
-      {/* Store Admins */}
+      {/* Store Admins (filtered view) */}
       <Route
         path="/admins"
         element={
@@ -74,7 +89,7 @@ function App() {
         }
       />
 
-      {/* Staff */}
+      {/* Staff (filtered view) */}
       <Route
         path="/staff"
         element={
@@ -85,19 +100,57 @@ function App() {
           </ProtectedRoute>
         }
       />
-      /* ================= SUPER ADMIN ================= */
-<Route
-  path="/superadmin/users"
-  element={
-    <ProtectedRoute roles={["super_admin"]}>
-      <SuperAdminLayout>
-        <Customers />
-      </SuperAdminLayout>
-    </ProtectedRoute>
-  }
-/>
 
-      {/* ================= ADMIN / STAFF / SUPER ADMIN ================= */}
+      {/* Staff under specific admin */}
+      <Route
+        path="/admin/:adminId/staff"
+        element={
+          <ProtectedRoute roles={["super_admin"]}>
+            <SuperAdminLayout>
+              <AdminStaff />
+            </SuperAdminLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Store Admins list */}
+      <Route
+        path="/store-admins"
+        element={
+          <ProtectedRoute roles={["super_admin"]}>
+            <SuperAdminLayout>
+              <StoreAdmins />
+            </SuperAdminLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Store Admin Profile */}
+      <Route
+        path="/store-admin/:adminId"
+        element={
+          <ProtectedRoute roles={["super_admin"]}>
+            <SuperAdminLayout>
+              <StoreAdminProfile />
+            </SuperAdminLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Registered Customers */}
+      <Route
+        path="/registered-customers"
+        element={
+          <ProtectedRoute roles={["super_admin"]}>
+            <SuperAdminLayout>
+              <RegisteredCustomers />
+            </SuperAdminLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* ================= MULTI-ROLE ROUTES ================= */}
+      {/* Dashboard - accessible by all roles */}
       <Route
         path="/dashboard"
         element={
@@ -109,6 +162,7 @@ function App() {
         }
       />
 
+      {/* Inventory - accessible by all roles */}
       <Route
         path="/inventory"
         element={
@@ -120,6 +174,7 @@ function App() {
         }
       />
 
+      {/* Add Product - admin and super_admin only */}
       <Route
         path="/inventory/add"
         element={
@@ -131,6 +186,7 @@ function App() {
         }
       />
 
+      {/* Edit Product - admin and super_admin only */}
       <Route
         path="/inventory/edit/:id"
         element={
@@ -142,6 +198,7 @@ function App() {
         }
       />
 
+      {/* Bulk Upload - admin and super_admin only */}
       <Route
         path="/inventory/bulk-upload"
         element={
@@ -153,6 +210,7 @@ function App() {
         }
       />
 
+      {/* Billing - all roles */}
       <Route
         path="/billing"
         element={
@@ -164,6 +222,7 @@ function App() {
         }
       />
 
+      {/* Customers - all roles */}
       <Route
         path="/customers"
         element={
@@ -175,6 +234,7 @@ function App() {
         }
       />
 
+      {/* Suppliers - admin and super_admin only */}
       <Route
         path="/suppliers"
         element={
@@ -186,6 +246,7 @@ function App() {
         }
       />
 
+      {/* Reports - admin and super_admin only */}
       <Route
         path="/reports"
         element={
@@ -197,7 +258,7 @@ function App() {
         }
       />
 
-      {/* ================= FALLBACK ================= */}
+      {/* ================= FALLBACK ROUTE ================= */}
       <Route path="*" element={<Home />} />
     </Routes>
   );

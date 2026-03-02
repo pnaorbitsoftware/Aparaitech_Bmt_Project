@@ -55,11 +55,4 @@ router.delete(
   customerController.deleteCustomer
 );
 
-// routes/customer.routes.js
-router.get(
-  "/superadmin/users",
-  auth,
-  isSuperAdmin,
-  getNormalUsers
-);
 module.exports = router;

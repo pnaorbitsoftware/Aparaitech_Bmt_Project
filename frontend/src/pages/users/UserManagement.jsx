@@ -1,19 +1,24 @@
 import { useEffect, useState } from "react";
-import { API } from "../services/api";
+import { API } from "../../services/api";
+import AdminProfile from "./AdminProfile"; // Import the profile modal
 
-function UserManagement({ roleFilter = null }) { // Add roleFilter prop
+function UserManagement({ roleFilter = null }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  
+  // Profile modal state
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [showProfile, setShowProfile] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
-    role: roleFilter || "staff", // Default role based on filter
+    role: roleFilter || "staff",
     permissions: []
   });
 
@@ -36,23 +41,21 @@ function UserManagement({ roleFilter = null }) { // Add roleFilter prop
 
   useEffect(() => {
     loadUsers();
-  }, [roleFilter]); // Reload when filter changes
+  }, [roleFilter]);
 
-  // Load users (with optional filtering)
+  // Load users
   const loadUsers = async () => {
     try {
       setLoading(true);
       const res = await API.get("/users");
       let userData = res.data.data || [];
       
-      // Apply role filter if specified
       if (roleFilter) {
         userData = userData.filter(user => user.role === roleFilter);
       }
       
       setUsers(userData);
       
-      // Update page title based on filter
       if (roleFilter === 'admin') {
         document.title = 'Store Admins - SmartStore';
       }
@@ -106,7 +109,25 @@ function UserManagement({ roleFilter = null }) { // Add roleFilter prop
     setShowModal(true);
   };
 
-  // Submit form (create or update)
+  // View profile
+  const handleViewProfile = (user) => {
+    setSelectedUser(user);
+    setShowProfile(true);
+  };
+
+  // Close profile
+  const handleCloseProfile = () => {
+    setShowProfile(false);
+    setSelectedUser(null);
+  };
+
+  // Handle logout
+  const handleLogout = () => {
+    localStorage.clear();
+    window.location.href = "/login";
+  };
+
+  // Submit form
   const handleSubmit = async () => {
     try {
       if (!formData.name || !formData.email) {
@@ -291,6 +312,14 @@ function UserManagement({ roleFilter = null }) { // Add roleFilter prop
                   
                   <td className="p-4">
                     <div className="flex gap-2">
+                      {/* View Profile Button */}
+                      <button
+                        onClick={() => handleViewProfile(user)}
+                        className="px-3 py-1 bg-indigo-100 text-indigo-600 rounded-lg hover:bg-indigo-200"
+                      >
+                        Profile
+                      </button>
+
                       <button
                         onClick={() => handleEdit(user)}
                         className="px-3 py-1 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200"
@@ -315,7 +344,7 @@ function UserManagement({ roleFilter = null }) { // Add roleFilter prop
         </table>
       </div>
 
-      {/* Create/Edit Modal - same as before */}
+      {/* Create/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
@@ -371,7 +400,7 @@ function UserManagement({ roleFilter = null }) { // Add roleFilter prop
                 name="role"
                 value={formData.role}
                 onChange={handleInputChange}
-                disabled={!!roleFilter} // Disable if filter is active
+                disabled={!!roleFilter}
                 className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none disabled:bg-gray-100"
               >
                 {roles.map(role => (
@@ -422,6 +451,17 @@ function UserManagement({ roleFilter = null }) { // Add roleFilter prop
           </div>
         </div>
       )}
+
+      {/* Profile Modal */}
+      {/* {showProfile && selectedUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-end z-50">
+          <AdminProfile 
+            admin={selectedUser}
+            onClose={handleCloseProfile}
+            onLogout={handleLogout}
+          />
+        </div>
+      )} */}
     </div>
   );
 }

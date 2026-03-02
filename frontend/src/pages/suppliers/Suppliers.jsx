@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { API } from "../services/api";
+import { API } from "../../services/api";
 
 function Suppliers() {
   const [vendors, setVendors] = useState([]);
