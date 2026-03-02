@@ -7,6 +7,10 @@ const allowRole = require("../middleware/roleMiddleware");
 
 const router = express.Router();
 
+
+const Otp = require("../models/Otp");
+const twilioClient = require("../utils/twilio");
+
 router.post("/register", verifyToken, allowRole(["super_admin"]), async (req, res) => {
   const { name, email, password, role } = req.body;
 
@@ -170,5 +174,96 @@ router.get("/me", async (req, res) => {
     });
   }
 });
+router.post("/send-otp", async (req, res) => {
+  try {
+    const { mobile } = req.body;
+
+    if (!/^[6-9]\d{9}$/.test(mobile)) {
+      return res.status(400).json({ message: "Invalid mobile number" });
+    }
+
+    const existingUser = await User.findOne({ mobile });
+    if (existingUser) {
+      return res.status(400).json({ message: "Mobile already registered" });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    await Otp.findOneAndUpdate(
+      { mobile },
+      { otp, expiresAt: Date.now() + 5 * 60 * 1000 },
+      { upsert: true }
+    );
+
+    // 🔥 WHATSAPP OTP VIA TWILIO
+    await twilioClient.messages.create({
+      from: `whatsapp:${process.env.TWILIO_WA_NUMBER}`,
+      to: `whatsapp:+91${mobile}`,
+      body: `Your SmartStore OTP is ${otp}. Valid for 5 minutes.`,
+    });
+
+    res.json({ message: "OTP sent on WhatsApp" });
+  } catch (error) {
+    console.error("❌ WhatsApp OTP error:", error.message);
+    res.status(500).json({ message: "Failed to send OTP" });
+  }
+});
+/* ================= VERIFY OTP & REGISTER ================= */
+router.post("/verify-otp-register", async (req, res) => {
+  try {
+    const { name, email, mobile, password, otp, role } = req.body;
+
+    if (!name || !email || !mobile || !password || !otp) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    // Find OTP
+    const otpDoc = await Otp.findOne({ mobile });
+
+    if (!otpDoc) {
+      return res.status(400).json({ message: "OTP not found. Please resend OTP" });
+    }
+
+    if (otpDoc.expiresAt < Date.now()) {
+      return res.status(400).json({ message: "OTP expired. Please resend OTP" });
+    }
+
+    if (otpDoc.otp !== otp) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    // Check existing user
+    const existingUser = await User.findOne({
+      $or: [{ email }, { mobile }],
+    });
+
+    if (existingUser) {
+      return res.status(400).json({ message: "User already exists" });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create user
+    await User.create({
+      name,
+      email,
+      mobile,
+      password: hashedPassword,
+      role: role || "user",
+      isMobileVerified: true,
+    });
+
+    // Delete OTP after successful registration
+    await Otp.deleteOne({ mobile });
+
+    res.json({ message: "Registration successful" });
+  } catch (error) {
+    console.error("❌ Verify OTP Register error:", error.message);
+    res.status(500).json({ message: "Registration failed" });
+  }
+});
 
 module.exports = router;
+
+

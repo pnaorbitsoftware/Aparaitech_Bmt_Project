@@ -3,6 +3,8 @@ import { Routes, Route } from "react-router-dom";
 /* ================= PAGES ================= */
 import Home from "./pages/Home";
 import Login from "./pages/Login";
+import Register from "./pages/Register";
+
 import Dashboard from "./pages/Dashboard";
 import Inventory from "./pages/Inventory";
 import Customers from "./pages/Customers";
@@ -12,10 +14,11 @@ import AddProduct from "./pages/AddProduct";
 import BulkUploadInventory from "./pages/BulkUploadInventory";
 import EditProduct from "./pages/EditProduct";
 import Billing from "./pages/Billing";
+
 import UserManagement from "./pages/UserManagement";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import StoreAdmins from "./pages/superadmin/StoreAdmins";
-
+import Customers from "./pages/superadmin/Customers";
 
 /* ================= LAYOUT ================= */
 import Sidebar from "./components/layout/Sidebar";
@@ -33,12 +36,13 @@ function App() {
       {/* ================= PUBLIC ================= */}
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
 
-      {/* ================= SUPER ADMIN ROUTES ================= */}
+      {/* ================= SUPER ADMIN ================= */}
       <Route
         path="/super-admin-dashboard"
         element={
-          <ProtectedRoute roles={['super_admin']}>
+          <ProtectedRoute roles={["super_admin"]}>
             <SuperAdminLayout>
               <SuperAdminDashboard />
             </SuperAdminLayout>
@@ -46,32 +50,58 @@ function App() {
         }
       />
 
+      {/* All users */}
       <Route
         path="/users"
         element={
-          <ProtectedRoute roles={['super_admin']}>
+          <ProtectedRoute roles={["super_admin"]}>
             <SuperAdminLayout>
               <UserManagement />
             </SuperAdminLayout>
           </ProtectedRoute>
         }
       />
+
+      {/* Store Admins */}
       <Route
-  path="/admins"
+        path="/admins"
+        element={
+          <ProtectedRoute roles={["super_admin"]}>
+            <SuperAdminLayout>
+              <UserManagement roleFilter="admin" />
+            </SuperAdminLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Staff */}
+      <Route
+        path="/staff"
+        element={
+          <ProtectedRoute roles={["super_admin"]}>
+            <SuperAdminLayout>
+              <UserManagement roleFilter="staff" />
+            </SuperAdminLayout>
+          </ProtectedRoute>
+        }
+      />
+      /* ================= SUPER ADMIN ================= */
+<Route
+  path="/superadmin/users"
   element={
     <ProtectedRoute roles={["super_admin"]}>
       <SuperAdminLayout>
-        <UserManagement roleFilter="admin" /> {/* Shows ONLY admins */}
+        <Customers />
       </SuperAdminLayout>
     </ProtectedRoute>
   }
 />
 
-      {/* ================= ADMIN/STAFF/SUPER_ADMIN ROUTES ================= */}
+      {/* ================= ADMIN / STAFF / SUPER ADMIN ================= */}
       <Route
         path="/dashboard"
         element={
-          <ProtectedRoute roles={['admin', 'staff', 'super_admin']}>
+          <ProtectedRoute roles={["admin", "staff", "super_admin"]}>
             <LayoutWrapper showTopbar>
               <Dashboard />
             </LayoutWrapper>
@@ -82,7 +112,7 @@ function App() {
       <Route
         path="/inventory"
         element={
-          <ProtectedRoute roles={['admin', 'staff', 'super_admin']}>
+          <ProtectedRoute roles={["admin", "staff", "super_admin"]}>
             <LayoutWrapper>
               <Inventory />
             </LayoutWrapper>
@@ -93,7 +123,7 @@ function App() {
       <Route
         path="/inventory/add"
         element={
-          <ProtectedRoute roles={['admin', 'super_admin']}>
+          <ProtectedRoute roles={["admin", "super_admin"]}>
             <LayoutWrapper>
               <AddProduct />
             </LayoutWrapper>
@@ -104,7 +134,7 @@ function App() {
       <Route
         path="/inventory/edit/:id"
         element={
-          <ProtectedRoute roles={['admin', 'super_admin']}>
+          <ProtectedRoute roles={["admin", "super_admin"]}>
             <LayoutWrapper>
               <EditProduct />
             </LayoutWrapper>
@@ -115,7 +145,7 @@ function App() {
       <Route
         path="/inventory/bulk-upload"
         element={
-          <ProtectedRoute roles={['admin', 'super_admin']}>
+          <ProtectedRoute roles={["admin", "super_admin"]}>
             <LayoutWrapper>
               <BulkUploadInventory />
             </LayoutWrapper>
@@ -126,7 +156,7 @@ function App() {
       <Route
         path="/billing"
         element={
-          <ProtectedRoute roles={['admin', 'staff', 'super_admin']}>
+          <ProtectedRoute roles={["admin", "staff", "super_admin"]}>
             <LayoutWrapper>
               <Billing />
             </LayoutWrapper>
@@ -137,7 +167,7 @@ function App() {
       <Route
         path="/customers"
         element={
-          <ProtectedRoute roles={['admin', 'staff', 'super_admin']}>
+          <ProtectedRoute roles={["admin", "staff", "super_admin"]}>
             <LayoutWrapper>
               <Customers />
             </LayoutWrapper>
@@ -148,7 +178,7 @@ function App() {
       <Route
         path="/suppliers"
         element={
-          <ProtectedRoute roles={['admin', 'super_admin']}>
+          <ProtectedRoute roles={["admin", "super_admin"]}>
             <LayoutWrapper>
               <Suppliers />
             </LayoutWrapper>
@@ -159,7 +189,7 @@ function App() {
       <Route
         path="/reports"
         element={
-          <ProtectedRoute roles={['admin', 'super_admin']}>
+          <ProtectedRoute roles={["admin", "super_admin"]}>
             <LayoutWrapper>
               <Reports />
             </LayoutWrapper>
@@ -173,7 +203,7 @@ function App() {
   );
 }
 
-/* ================= REGULAR LAYOUT WRAPPER ================= */
+/* ================= REGULAR LAYOUT ================= */
 function LayoutWrapper({ children, showTopbar = false }) {
   return (
     <div className="min-h-screen bg-gray-100">
@@ -192,8 +222,7 @@ function LayoutWrapper({ children, showTopbar = false }) {
 function SuperAdminLayout({ children }) {
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* You can create a different sidebar for super admin if needed */}
-      <Sidebar /> 
+      <Sidebar />
       <div className="ml-64 min-h-screen flex flex-col">
         <Topbar />
         <div className="flex-1 p-6 mt-16">
