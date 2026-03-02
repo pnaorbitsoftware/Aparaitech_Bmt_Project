@@ -1,3 +1,4 @@
+import React from "react";
 import { useEffect, useState } from "react";
 import { UserCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom"; // Make sure this is imported
@@ -40,7 +41,8 @@ function StoreAdmins() {
 
   // ✅ Function to navigate to store admin profile
   const handleViewProfile = (adminId) => {
-    navigate(`/store-admin/${adminId}`);
+    alert("CLICKED! ID: " + adminId);
+    console.log("Clicked:", adminId);
   };
 
   if (loading) {
@@ -54,6 +56,12 @@ function StoreAdmins() {
   return (
     <div className="p-6">
       {/* HEADER */}
+      <button 
+  onClick={() => alert("Test button clicked!")}
+  className="mb-4 bg-red-500 text-white p-2 rounded"
+>
+  Click Me Test
+</button>
       <div className="flex items-center gap-3 mb-6">
         <div className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center">
           <UserCheck />
