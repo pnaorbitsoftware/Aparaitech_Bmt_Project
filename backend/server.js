@@ -5,11 +5,9 @@ const mongoose = require("mongoose");
 const fs = require("fs"); // Added for directory check
 require("dotenv").config();
 
+const storeRoutes = require("./routes/storeRoutes");
+
 const app = express();
-// Add this with other routes
-
-
-// Mount with other routes
 
 
 /* ======================
@@ -120,6 +118,7 @@ const startServer = async () => {
     app.use("/api/offers", offerRoutes);
     app.use("/api/test", testRoutes);
     app.use("/api/users", userRoutes);
+    app.use("/api/stores", storeRoutes);
 
     /* ======================
        HEALTH CHECK

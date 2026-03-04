@@ -14,6 +14,7 @@ import UserManagement from "./pages/users/UserManagement";
 import AdminStaff from "./pages/users/AdminStaff";
 import StoreAdmins from "./pages/users/StoreAdmins";
 import StoreAdminProfile from "./pages/users/StoreAdminProfile";
+import MyStaff from "./pages/users/MyStaff";
 
 // Customers
 import Customers from "./pages/customers/Customers";
@@ -112,6 +113,17 @@ function App() {
           </ProtectedRoute>
         }
       />
+
+<Route
+  path="/my-staff"
+  element={
+    <ProtectedRoute roles={["admin"]}>
+      <LayoutWrapper>
+        <MyStaff />
+      </LayoutWrapper>
+    </ProtectedRoute>
+  }
+/>
 
       {/* Store Admins list */}
       <Route
