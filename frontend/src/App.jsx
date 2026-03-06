@@ -1,4 +1,4 @@
-```javascript
+
 import { Routes, Route } from "react-router-dom";
 
 /* ================= PAGES ================= */
@@ -171,6 +171,7 @@ function App() {
       />
 
       <Route
+        path="/stores"
         element={
           <ProtectedRoute roles={["super_admin"]}>
             <SuperAdminLayout>
@@ -323,4 +324,4 @@ function SuperAdminLayout({ children }) {
 }
 
 export default App;
-```
+
