@@ -1,4 +1,3 @@
-
 import { Routes, Route } from "react-router-dom";
 
 /* ================= PAGES ================= */
@@ -14,7 +13,7 @@ import AdminStaff from "./pages/users/AdminStaff";
 import StoreAdmins from "./pages/users/StoreAdmins";
 import StoreAdminProfile from "./pages/users/StoreAdminProfile";
 import MyStaff from "./pages/users/MyStaff";
-import CategoryPage from "./pages/users/CategoryPage";
+import CategoryPage from "./pages/users/Category";
 
 // Stores
 import Stores from "./pages/stores/Stores";
@@ -49,7 +48,8 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
-      {/* ================= USER DASHBOARD ================= */}
+      {/* ================= USER ================= */}
+
       <Route
         path="/user-dashboard"
         element={
@@ -59,18 +59,18 @@ function App() {
         }
       />
 
+      {/* CATEGORY PAGE */}
       <Route
         path="/category/:category"
         element={
           <ProtectedRoute roles={["user"]}>
-            <UserDashboard>
-              <CategoryPage />
-            </UserDashboard>
+            <CategoryPage />
           </ProtectedRoute>
         }
       />
 
-      {/* ================= SUPER ADMIN ONLY ROUTES ================= */}
+      {/* ================= SUPER ADMIN ================= */}
+
       <Route
         path="/super-admin-dashboard"
         element={
@@ -181,7 +181,8 @@ function App() {
         }
       />
 
-      {/* ================= ADMIN ONLY ================= */}
+      {/* ================= ADMIN ================= */}
+
       <Route
         path="/my-staff"
         element={
@@ -194,6 +195,7 @@ function App() {
       />
 
       {/* ================= MULTI ROLE ================= */}
+
       <Route
         path="/dashboard"
         element={
@@ -299,13 +301,17 @@ function App() {
   );
 }
 
+/* ================= LAYOUTS ================= */
+
 function LayoutWrapper({ children, showTopbar = false }) {
   return (
     <div className="min-h-screen bg-gray-100">
       <Sidebar />
       <div className="ml-64 min-h-screen flex flex-col">
         {showTopbar && <Topbar />}
-        <div className={`flex-1 p-6 ${showTopbar ? "mt-16" : ""}`}>{children}</div>
+        <div className={`flex-1 p-6 ${showTopbar ? "mt-16" : ""}`}>
+          {children}
+        </div>
       </div>
     </div>
   );
@@ -317,11 +323,12 @@ function SuperAdminLayout({ children }) {
       <Sidebar />
       <div className="ml-64 min-h-screen flex flex-col">
         <Topbar />
-        <div className="flex-1 p-6 mt-16">{children}</div>
+        <div className="flex-1 p-6 mt-16">
+          {children}
+        </div>
       </div>
     </div>
   );
 }
 
 export default App;
-

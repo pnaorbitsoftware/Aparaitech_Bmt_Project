@@ -4,6 +4,7 @@ import { FaMapMarkerAlt, FaSearch, FaShoppingCart } from "react-icons/fa";
 import Profile from "../../pages/users/Profile";
 
 export default function UserTopbar() {
+
   const [location, setLocation] = useState("Detecting location...");
   const [cartCount, setCartCount] = useState(0);
 
@@ -44,6 +45,7 @@ export default function UserTopbar() {
             "Your Location";
 
           setLocation(city);
+
         } catch {
           setLocation("Location found");
         }
@@ -55,20 +57,35 @@ export default function UserTopbar() {
   };
 
   return (
+
     <header className="sticky top-0 z-40 bg-white shadow-md flex items-center justify-between px-10 py-4 border-b">
 
-      {/* DELIVERY INFO */}
-      <div className="flex flex-col text-sm">
+      {/* LEFT SECTION */}
+      <div className="flex items-center gap-6">
 
-        <span className="font-semibold text-gray-800">
-          Delivery in 15 minutes
-        </span>
+        {/* SmartStore Logo */}
+        <h1
+          onClick={() => navigate("/dashboard")}
+          className="text-2xl font-bold text-purple-600 cursor-pointer"
+        >
+          SmartStore
+        </h1>
 
-        <div className="flex items-center text-gray-600 gap-2">
-          <FaMapMarkerAlt className="text-blue-600" />
-          <span className="truncate max-w-[150px]">
-            {location}
+        {/* Delivery Info */}
+        <div className="flex flex-col text-sm">
+
+          <span className="font-semibold text-gray-800">
+            Delivery in 15 minutes
           </span>
+
+          <div className="flex items-center text-gray-600 gap-2">
+            <FaMapMarkerAlt className="text-blue-600" />
+
+            <span className="truncate max-w-[150px]">
+              {location}
+            </span>
+          </div>
+
         </div>
 
       </div>
@@ -101,6 +118,7 @@ export default function UserTopbar() {
           onClick={() => navigate("/cart")}
           className="relative flex items-center gap-2 bg-blue-600 text-white px-5 py-2 rounded-lg cursor-pointer hover:bg-blue-700 transition"
         >
+
           <FaShoppingCart />
 
           <span className="hidden sm:block">
@@ -112,10 +130,12 @@ export default function UserTopbar() {
               {cartCount}
             </span>
           )}
+
         </div>
 
       </div>
 
     </header>
+
   );
 }

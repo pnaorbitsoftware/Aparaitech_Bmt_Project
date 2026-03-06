@@ -41,6 +41,20 @@ router.get("/", verifyToken, allowRole(["super_admin"]), async (req, res) => {
   }
 });
 
+// @desc  Get current admin's own store (admin only)
+// @route GET /api/stores/my-store
+router.get("/my-store", verifyToken, allowRole(["admin"]), async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("storeId");
+    if (!user?.storeId) return res.json({ success: true, data: null });
+    const store = await Store.findById(user.storeId).select("name categories");
+    res.json({ success: true, data: store });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Failed to fetch store" });
+  }
+});
+
+
 // @desc  Get single store with staff
 // @route GET /api/stores/:id
 router.get("/:id", verifyToken, allowRole(["super_admin"]), async (req, res) => {
