@@ -3,6 +3,7 @@ const cors = require("cors");
 const path = require("path");
 const mongoose = require("mongoose");
 const fs = require("fs"); // Added for directory check
+const deliveryPartnerRoutes = require("./routes/deliveryPartnerRoutes");
 require("dotenv").config();
 
 const storeRoutes = require("./routes/storeRoutes");
@@ -119,6 +120,7 @@ const startServer = async () => {
     app.use("/api/test", testRoutes);
     app.use("/api/users", userRoutes);
     app.use("/api/stores", storeRoutes);
+    app.use("/api/delivery-partners", deliveryPartnerRoutes);
 
     /* ======================
        HEALTH CHECK
