@@ -8,6 +8,7 @@ import Register from "./pages/auth/Register";
 // Dashboard
 import Dashboard from "./pages/dashboard/Dashboard";
 import SuperAdminDashboard from "./pages/dashboard/SuperAdminDashboard";
+import UserDashboard from "./pages/dashboard/UserDashboard";
 
 // Users
 import UserManagement from "./pages/users/UserManagement";
@@ -15,6 +16,8 @@ import AdminStaff from "./pages/users/AdminStaff";
 import StoreAdmins from "./pages/users/StoreAdmins";
 import StoreAdminProfile from "./pages/users/StoreAdminProfile";
 import MyStaff from "./pages/users/MyStaff";
+import CategoryPage from "./pages/users/CategoryPage";
+
 
 // Customers
 import Customers from "./pages/customers/Customers";
@@ -53,6 +56,27 @@ function App() {
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+
+
+      {/* ================= USER DASHBOARD ================= */}
+      <Route
+        path="/user-dashboard"
+        element={
+          <ProtectedRoute roles={["user"]}>
+            <UserDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+  path="/category/:category"
+  element={
+    <ProtectedRoute roles={["user"]}>
+      <UserDashboard>
+        <CategoryPage />
+      </UserDashboard>
+    </ProtectedRoute>
+  }
+/>
 
       {/* ================= SUPER ADMIN ONLY ROUTES ================= */}
       <Route

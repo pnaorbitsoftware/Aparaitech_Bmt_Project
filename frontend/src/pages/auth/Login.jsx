@@ -48,6 +48,7 @@ function Login() {
         return;
       }
 
+      /* ================= SAVE LOGIN DATA ================= */
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
 
@@ -55,19 +56,26 @@ function Login() {
       console.log("💾 Token saved:", !!token);
       console.log("💾 User saved:", user.name);
 
+      /* ================= REDIRECT BASED ON ROLE ================= */
       setTimeout(() => {
         if (user.role === "super_admin") {
           console.log("➡️ Redirecting to super admin dashboard");
           window.location.href = "/super-admin-dashboard";
+
         } else if (user.role === "admin" || user.role === "staff") {
           console.log("➡️ Redirecting to regular dashboard");
           window.location.href = "/dashboard";
+
+        } else if (user.role === "user") {
+          console.log("➡️ Redirecting to user dashboard");
+          window.location.href = "/user-dashboard";
+
         } else {
-          console.log("✅ Normal user login successful");
-          alert("Login successful! User dashboard is coming soon 🚧");
+          console.log("⚠️ Unknown role, redirecting home");
           window.location.href = "/";
         }
       }, 100);
+
     } catch (err) {
       console.error("❌ Login error:", err);
       setError(
@@ -81,6 +89,7 @@ function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-900 px-4">
       <div className="w-full max-w-md bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-emerald-400">
+        
         {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-2">
           <div className="bg-emerald-500 p-3 rounded-xl shadow-lg text-white">
@@ -146,6 +155,7 @@ function Login() {
           </div>
         )}
 
+        {/* LOGIN FORM */}
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
             <label className="text-sm text-gray-600">Email</label>
@@ -198,6 +208,7 @@ function Login() {
           )}
         </form>
 
+        {/* DEMO USERS */}
         <div className="mt-6 text-center text-xs text-gray-500 space-y-1">
           <p className="font-semibold text-emerald-600">Demo Credentials:</p>
           <p>Super Admin: superadmin@example.com / SuperAdmin@123</p>
