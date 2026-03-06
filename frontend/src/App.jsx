@@ -1,3 +1,4 @@
+```javascript
 import { Routes, Route } from "react-router-dom";
 
 /* ================= PAGES ================= */
@@ -5,18 +6,28 @@ import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import Dashboard from "./pages/dashboard/Dashboard";
 import SuperAdminDashboard from "./pages/dashboard/SuperAdminDashboard";
+import UserDashboard from "./pages/dashboard/UserDashboard";
+
+// Users
 import UserManagement from "./pages/users/UserManagement";
 import AdminStaff from "./pages/users/AdminStaff";
 import StoreAdmins from "./pages/users/StoreAdmins";
 import StoreAdminProfile from "./pages/users/StoreAdminProfile";
 import MyStaff from "./pages/users/MyStaff";
-import Stores from "./pages/stores/Stores"; 
+import CategoryPage from "./pages/users/CategoryPage";
+
+// Stores
+import Stores from "./pages/stores/Stores";
+
+// Customers
 import Customers from "./pages/customers/Customers";
 import RegisteredCustomers from "./pages/customers/RegisteredCustomers";
+
 import Inventory from "./pages/inventory/Inventory";
 import AddProduct from "./pages/inventory/AddProduct";
 import EditProduct from "./pages/inventory/EditProduct";
 import BulkUploadInventory from "./pages/inventory/BulkUploadInventory";
+
 import Billing from "./pages/billing/Billing";
 import Suppliers from "./pages/suppliers/Suppliers";
 import Reports from "./pages/reports/Reports";
@@ -32,217 +43,257 @@ import "./assets/styles/thermal.css";
 function App() {
   return (
     <Routes>
+
       {/* ================= PUBLIC ================= */}
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
-      {/* ================= SUPER ADMIN ONLY ================= */}
+      {/* ================= USER DASHBOARD ================= */}
       <Route
-        path="/super-admin-dashboard" 
-          element={
-            <ProtectedRoute roles={["super_admin"]}>
-              <SuperAdminLayout>
-                <SuperAdminDashboard />
-              </SuperAdminLayout>
-            </ProtectedRoute>} 
-        />
+        path="/user-dashboard"
+        element={
+          <ProtectedRoute roles={["user"]}>
+            <UserDashboard />
+          </ProtectedRoute>
+        }
+      />
 
-      <Route 
+      <Route
+        path="/category/:category"
+        element={
+          <ProtectedRoute roles={["user"]}>
+            <UserDashboard>
+              <CategoryPage />
+            </UserDashboard>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* ================= SUPER ADMIN ONLY ROUTES ================= */}
+      <Route
+        path="/super-admin-dashboard"
+        element={
+          <ProtectedRoute roles={["super_admin"]}>
+            <SuperAdminLayout>
+              <SuperAdminDashboard />
+            </SuperAdminLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
         path="/users"
-          element={
-            <ProtectedRoute roles={["super_admin"]}>
-              <SuperAdminLayout>
-                <UserManagement />
-              </SuperAdminLayout>
-             </ProtectedRoute>}
-        />
-      
-      <Route 
-        path="/admins" 
         element={
-        <ProtectedRoute roles={["super_admin"]}>
-          <SuperAdminLayout>
-            <UserManagement roleFilter="admin" />
-          </SuperAdminLayout>
-        </ProtectedRoute>} 
+          <ProtectedRoute roles={["super_admin"]}>
+            <SuperAdminLayout>
+              <UserManagement />
+            </SuperAdminLayout>
+          </ProtectedRoute>
+        }
       />
-     
-      <Route 
-        path="/staff" 
+
+      <Route
+        path="/admins"
         element={
-        <ProtectedRoute roles={["super_admin"]}>
-          <SuperAdminLayout>
-            <UserManagement roleFilter="staff" />
-          </SuperAdminLayout>
-        </ProtectedRoute>} 
+          <ProtectedRoute roles={["super_admin"]}>
+            <SuperAdminLayout>
+              <UserManagement roleFilter="admin" />
+            </SuperAdminLayout>
+          </ProtectedRoute>
+        }
       />
-      
-      <Route 
+
+      <Route
+        path="/staff"
+        element={
+          <ProtectedRoute roles={["super_admin"]}>
+            <SuperAdminLayout>
+              <UserManagement roleFilter="staff" />
+            </SuperAdminLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
         path="/admin/:adminId/staff"
         element={
-        <ProtectedRoute roles={["super_admin"]}>
-          <SuperAdminLayout>
-            <AdminStaff />
-          </SuperAdminLayout>
-        </ProtectedRoute>} 
+          <ProtectedRoute roles={["super_admin"]}>
+            <SuperAdminLayout>
+              <AdminStaff />
+            </SuperAdminLayout>
+          </ProtectedRoute>
+        }
       />
 
       <Route
         path="/store-admins"
         element={
-        <ProtectedRoute roles={["super_admin"]}>
-          <SuperAdminLayout>
-            <StoreAdmins />
-          </SuperAdminLayout>
-        </ProtectedRoute>} 
+          <ProtectedRoute roles={["super_admin"]}>
+            <SuperAdminLayout>
+              <StoreAdmins />
+            </SuperAdminLayout>
+          </ProtectedRoute>
+        }
       />
 
-      <Route 
-        path="/store-admin/:adminId" 
-        element={
-        <ProtectedRoute roles={["super_admin"]}>
-          <SuperAdminLayout>
-            <StoreAdminProfile />
-          </SuperAdminLayout>
-        </ProtectedRoute>} 
-      />
-      
       <Route
-        path="/registered-customers" 
+        path="/store-admin/:adminId"
         element={
-        <ProtectedRoute roles={["super_admin"]}>
-          <SuperAdminLayout>
-            <RegisteredCustomers />
-          </SuperAdminLayout>
-        </ProtectedRoute>} 
+          <ProtectedRoute roles={["super_admin"]}>
+            <SuperAdminLayout>
+              <StoreAdminProfile />
+            </SuperAdminLayout>
+          </ProtectedRoute>
+        }
       />
 
-      <Route 
+      <Route
+        path="/registered-customers"
+        element={
+          <ProtectedRoute roles={["super_admin"]}>
+            <SuperAdminLayout>
+              <RegisteredCustomers />
+            </SuperAdminLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
         path="/delivery"
         element={
-        <ProtectedRoute roles={["super_admin"]}>
-          <SuperAdminLayout>
-            <DeliveryPartners />
-          </SuperAdminLayout>
-        </ProtectedRoute>
-      }/>
+          <ProtectedRoute roles={["super_admin"]}>
+            <SuperAdminLayout>
+              <DeliveryPartners />
+            </SuperAdminLayout>
+          </ProtectedRoute>
+        }
+      />
 
-
-      {/* ✅ STORES PAGE */}
       <Route
-        path="/stores"
         element={
-        <ProtectedRoute roles={["super_admin"]}>
-          <SuperAdminLayout>
-            <Stores />
-          </SuperAdminLayout>
-        </ProtectedRoute>} 
+          <ProtectedRoute roles={["super_admin"]}>
+            <SuperAdminLayout>
+              <Stores />
+            </SuperAdminLayout>
+          </ProtectedRoute>
+        }
       />
 
       {/* ================= ADMIN ONLY ================= */}
-      <Route 
+      <Route
         path="/my-staff"
         element={
-        <ProtectedRoute roles={["admin"]}>
-          <LayoutWrapper>
-            <MyStaff />
-          </LayoutWrapper>
-        </ProtectedRoute>} 
+          <ProtectedRoute roles={["admin"]}>
+            <LayoutWrapper>
+              <MyStaff />
+            </LayoutWrapper>
+          </ProtectedRoute>
+        }
       />
 
-      {/* ================= MULTI-ROLE ================= */}
+      {/* ================= MULTI ROLE ================= */}
       <Route
         path="/dashboard"
         element={
-        <ProtectedRoute roles={["admin", "staff", "super_admin"]}>
-          <LayoutWrapper showTopbar>
-            <Dashboard />
-          </LayoutWrapper>
-        </ProtectedRoute>} 
-      />
-
-      <Route 
-        path="/inventory" 
-        element={
-        <ProtectedRoute roles={["admin", "staff", "super_admin"]}>
-          <LayoutWrapper>
-            <Inventory />
-          </LayoutWrapper>
-        </ProtectedRoute>} 
-      />
-
-      <Route 
-        path="/inventory/add" 
-        element={
-        <ProtectedRoute roles={["admin", "super_admin"]}>
-          <LayoutWrapper>
-            <AddProduct />
-          </LayoutWrapper>
-        </ProtectedRoute>} 
-      />
-
-      <Route 
-        path="/inventory/edit/:id"
-        element={
-        <ProtectedRoute roles={["admin", "super_admin"]}>
-          <LayoutWrapper>
-            <EditProduct />
-          </LayoutWrapper>
-        </ProtectedRoute>} 
-      />
-
-      <Route 
-        path="/inventory/bulk-upload" 
-        element={
-        <ProtectedRoute roles={["admin", "super_admin"]}>
-          <LayoutWrapper>
-            <BulkUploadInventory />
-          </LayoutWrapper>
-        </ProtectedRoute>} 
+          <ProtectedRoute roles={["admin", "staff", "super_admin"]}>
+            <LayoutWrapper showTopbar>
+              <Dashboard />
+            </LayoutWrapper>
+          </ProtectedRoute>
+        }
       />
 
       <Route
-        path="/billing" 
+        path="/inventory"
         element={
-        <ProtectedRoute roles={["admin", "staff", "super_admin"]}>
-          <LayoutWrapper>
-            <Billing />
-          </LayoutWrapper>
-        </ProtectedRoute>} 
+          <ProtectedRoute roles={["admin", "staff", "super_admin"]}>
+            <LayoutWrapper>
+              <Inventory />
+            </LayoutWrapper>
+          </ProtectedRoute>
+        }
       />
 
-      <Route 
-        path="/customers" 
+      <Route
+        path="/inventory/add"
         element={
-        <ProtectedRoute roles={["admin", "staff", "super_admin"]}>
-          <LayoutWrapper>
-            <Customers />
-          </LayoutWrapper>
-        </ProtectedRoute>} 
+          <ProtectedRoute roles={["admin", "super_admin"]}>
+            <LayoutWrapper>
+              <AddProduct />
+            </LayoutWrapper>
+          </ProtectedRoute>
+        }
       />
 
-      <Route 
-        path="/suppliers" 
+      <Route
+        path="/inventory/edit/:id"
         element={
-        <ProtectedRoute roles={["admin", "super_admin"]}>
-          <LayoutWrapper>
-            <Suppliers />
-          </LayoutWrapper>
-        </ProtectedRoute>} 
+          <ProtectedRoute roles={["admin", "super_admin"]}>
+            <LayoutWrapper>
+              <EditProduct />
+            </LayoutWrapper>
+          </ProtectedRoute>
+        }
       />
 
-      <Route 
-        path="/reports" 
+      <Route
+        path="/inventory/bulk-upload"
         element={
-        <ProtectedRoute roles={["admin", "super_admin"]}>
-          <LayoutWrapper>
-            <Reports />
-          </LayoutWrapper>
-        </ProtectedRoute>} 
+          <ProtectedRoute roles={["admin", "super_admin"]}>
+            <LayoutWrapper>
+              <BulkUploadInventory />
+            </LayoutWrapper>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/billing"
+        element={
+          <ProtectedRoute roles={["admin", "staff", "super_admin"]}>
+            <LayoutWrapper>
+              <Billing />
+            </LayoutWrapper>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/customers"
+        element={
+          <ProtectedRoute roles={["admin", "staff", "super_admin"]}>
+            <LayoutWrapper>
+              <Customers />
+            </LayoutWrapper>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/suppliers"
+        element={
+          <ProtectedRoute roles={["admin", "super_admin"]}>
+            <LayoutWrapper>
+              <Suppliers />
+            </LayoutWrapper>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/reports"
+        element={
+          <ProtectedRoute roles={["admin", "super_admin"]}>
+            <LayoutWrapper>
+              <Reports />
+            </LayoutWrapper>
+          </ProtectedRoute>
+        }
       />
 
       <Route path="*" element={<Home />} />
+
     </Routes>
   );
 }
@@ -272,3 +323,4 @@ function SuperAdminLayout({ children }) {
 }
 
 export default App;
+```
