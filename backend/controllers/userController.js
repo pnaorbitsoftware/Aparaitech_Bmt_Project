@@ -245,3 +245,21 @@ exports.deleteAdmin = async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to delete admin" });
   }
 };
+
+exports.getRegisteredUsers = async (req, res) => {
+  try {
+
+    const users = await User.find({
+      role: "user",
+      storeId: null,
+      isActive: true
+    })
+    .select("-password")
+    .sort({ createdAt: -1 });
+
+    res.json(users);
+
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

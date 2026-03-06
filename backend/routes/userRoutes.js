@@ -3,6 +3,9 @@ const router = express.Router();
 const userController = require("../controllers/userController");
 const verifyToken = require("../middleware/authMiddleware");
 const allowRole = require("../middleware/roleMiddleware");
+const { getRegisteredUsers } = require("../controllers/userController");
+
+
 
 // ==================== PROFILE ROUTES (any authenticated user) ====================
 router.get("/profile", verifyToken, userController.getProfile);
@@ -27,5 +30,6 @@ router.get("/admins/:id", verifyToken, allowRole(["super_admin"]), userControlle
 router.post("/admins", verifyToken, allowRole(["super_admin"]), userController.createAdmin);
 router.put("/admins/:id", verifyToken, allowRole(["super_admin"]), userController.updateAdmin);
 router.delete("/admins/:id", verifyToken, allowRole(["super_admin"]), userController.deleteAdmin);
+router.get("/registered-users", getRegisteredUsers);
 
 module.exports = router;

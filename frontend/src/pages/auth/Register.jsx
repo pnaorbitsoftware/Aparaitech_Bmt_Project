@@ -29,7 +29,9 @@ function Register() {
 
     try {
       setLoading(true);
+
       await API.post("/auth/send-otp", { mobile });
+
       setOtpSent(true);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to send OTP");
@@ -38,7 +40,7 @@ function Register() {
     }
   };
 
-  /* ================= OTP INPUT HANDLER ================= */
+  /* ================= OTP INPUT ================= */
   const handleOtpChange = (value, index) => {
     if (!/^\d*$/.test(value)) return;
 
@@ -72,10 +74,13 @@ function Register() {
         mobile,
         password,
         otp,
-        role: "user", // ✅ matches schema
+        role: "user",
       });
 
+      alert("Registration successful. Please login.");
+
       navigate("/login");
+
     } catch (err) {
       setError(err.response?.data?.message || "Registration failed");
     } finally {
@@ -85,6 +90,7 @@ function Register() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-900 px-4">
+
       <div className="w-full max-w-md bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-emerald-400">
 
         {/* HEADER */}
@@ -107,6 +113,7 @@ function Register() {
 
         <form onSubmit={handleRegister} className="space-y-4">
 
+          {/* NAME */}
           <input
             type="text"
             placeholder="Full Name"
@@ -116,6 +123,7 @@ function Register() {
             required
           />
 
+          {/* EMAIL */}
           <input
             type="email"
             placeholder="Email"
@@ -125,6 +133,7 @@ function Register() {
             required
           />
 
+          {/* MOBILE + OTP BUTTON */}
           <div className="flex gap-2">
             <input
               type="tel"
@@ -135,6 +144,7 @@ function Register() {
               maxLength={10}
               required
             />
+
             <button
               type="button"
               onClick={handleSendOtp}
@@ -145,7 +155,7 @@ function Register() {
             </button>
           </div>
 
-          {/* OTP INPUTS */}
+          {/* OTP INPUT */}
           {otpSent && (
             <div className="flex justify-between gap-3">
               {otpParts.map((part, index) => (
@@ -168,6 +178,7 @@ function Register() {
             </div>
           )}
 
+          {/* PASSWORD */}
           <div className="relative">
             <input
               type={showPassword ? "text" : "password"}
@@ -177,6 +188,7 @@ function Register() {
               onChange={(e) => setPassword(e.target.value)}
               required
             />
+
             <span
               onClick={() => setShowPassword(!showPassword)}
               className="absolute right-4 top-4 cursor-pointer text-gray-500"
@@ -185,6 +197,7 @@ function Register() {
             </span>
           </div>
 
+          {/* REGISTER BUTTON */}
           <button
             type="submit"
             disabled={!otpSent || loading}
@@ -194,6 +207,7 @@ function Register() {
           </button>
         </form>
 
+        {/* LOGIN LINK */}
         <p className="text-center text-sm text-gray-600 mt-6">
           Already have an account?{" "}
           <span
@@ -203,6 +217,7 @@ function Register() {
             Login
           </span>
         </p>
+
       </div>
     </div>
   );
