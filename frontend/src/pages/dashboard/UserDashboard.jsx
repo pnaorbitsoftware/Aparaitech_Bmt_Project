@@ -18,23 +18,24 @@ export default function UserDashboard() {
 
   const navigate = useNavigate();
 
-  const handleCategoryClick = (category) => {
-    navigate(`/category/${encodeURIComponent(category)}`);
-  };
-
+  // Categories list
   const categories = [
     { name: "Grocery", icon: <FaShoppingBasket /> },
     { name: "Pharmacy", icon: <FaCapsules /> },
     { name: "Electronics", icon: <FaMobileAlt /> },
-    { name: "Clothing", icon: <FaTshirt /> },
-    { name: "Food", icon: <FaHamburger /> },
+    { name: "Clothing & Fashion", icon: <FaTshirt /> },
+    { name: "Food & Beverages", icon: <FaHamburger /> },
     { name: "Hardware", icon: <FaBroom /> },
     { name: "Stationery", icon: <FaBook /> },
-    { name: "Beauty", icon: <FaPumpSoap /> },
-    { name: "Fitness", icon: <FaCarrot /> },
+    { name: "Beauty & Cosmetics", icon: <FaPumpSoap /> },
+    { name: "Sports & Fitness", icon: <FaCarrot /> },
     { name: "Books", icon: <FaBook /> },
-    { name: "Toys", icon: <FaAppleAlt /> }
+    { name: "Toys & Games", icon: <FaAppleAlt /> }
   ];
+
+  const handleCategoryClick = (category) => {
+    navigate(`/category/${encodeURIComponent(category)}`);
+  };
 
   return (
 
@@ -59,7 +60,7 @@ export default function UserDashboard() {
               <div
                 key={index}
                 onClick={() => handleCategoryClick(cat.name)}
-                className="flex flex-col items-center min-w-[70px] cursor-pointer hover:scale-105 transition"
+                className="flex flex-col items-center min-w-[80px] cursor-pointer hover:scale-105 transition"
               >
 
                 <div className="bg-purple-100 p-4 rounded-full text-purple-600 text-xl">

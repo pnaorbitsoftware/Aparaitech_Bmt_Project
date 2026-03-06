@@ -19,9 +19,10 @@ router.get("/", async (req, res) => {
 
 // GET PRODUCTS BY CATEGORY
 router.get("/category/:category", async (req, res) => {
+
   try {
 
-    const category = req.params.category;
+    const category = decodeURIComponent(req.params.category);
 
     const products = await Product.find({
       category: category
@@ -30,8 +31,11 @@ router.get("/category/:category", async (req, res) => {
     res.json(products);
 
   } catch (error) {
+
     res.status(500).json({ message: error.message });
+
   }
+
 });
 
 

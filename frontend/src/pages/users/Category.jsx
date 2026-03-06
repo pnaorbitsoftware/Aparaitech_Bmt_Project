@@ -5,22 +5,26 @@ import { API } from "../../services/api";
 export default function Category() {
 
   const { category } = useParams();
+  const decodedCategory = decodeURIComponent(category);
+
   const [products, setProducts] = useState([]);
 
   useEffect(() => {
     fetchProducts();
-  }, [category]);
+  }, [decodedCategory]);
 
   const fetchProducts = async () => {
+
     try {
 
-      const res = await API.get(`/products/category/${category}`);
+      const res = await API.get(`/products/category/${decodedCategory}`);
 
       setProducts(res.data);
 
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.error(error);
     }
+
   };
 
   return (
@@ -28,7 +32,7 @@ export default function Category() {
     <div className="p-6">
 
       <h1 className="text-2xl font-bold mb-6">
-        {category} Products
+        {decodedCategory}
       </h1>
 
       <div className="grid lg:grid-cols-4 md:grid-cols-3 sm:grid-cols-2 gap-6">
@@ -37,7 +41,7 @@ export default function Category() {
 
           <div
             key={product._id}
-            className="bg-white rounded-xl shadow hover:shadow-lg p-4"
+            className="bg-white p-4 rounded-xl shadow hover:shadow-lg"
           >
 
             <img
@@ -50,7 +54,7 @@ export default function Category() {
               {product.name}
             </h3>
 
-            <p className="text-gray-500 text-sm">
+            <p className="text-gray-500">
               ₹{product.price}
             </p>
 
