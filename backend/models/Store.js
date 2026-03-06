@@ -8,6 +8,11 @@ const storeSchema = new mongoose.Schema(
       required: [true, "Please add a store name"],
       trim: true,
     },
+    /* ================= CATEGORIES (multiple) ================= */
+    categories: {
+      type: [String],
+      default: [],
+    },
     address: {
       street: { type: String, trim: true },
       city:   { type: String, trim: true },
@@ -31,7 +36,7 @@ const storeSchema = new mongoose.Schema(
     },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // super_admin who created this store
+      ref: "User",
     },
     /* ================= STATUS ================= */
     isActive: {

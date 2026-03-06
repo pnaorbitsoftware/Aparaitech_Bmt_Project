@@ -6,6 +6,30 @@ import {
   UserCircle, Briefcase, MapPin, Shield, Plus, X, CheckCircle
 } from "lucide-react";
 
+const PRESET_CATEGORIES = [
+  "Grocery", "Pharmacy", "Electronics", "Clothing & Fashion",
+  "Food & Beverages", "Hardware", "Stationery", "Beauty & Cosmetics",
+  "Sports & Fitness", "Books", "Toys & Games",
+];
+
+const CATEGORY_COLORS = {
+  "Grocery":            "bg-green-100 text-green-700",
+  "Pharmacy":           "bg-blue-100 text-blue-700",
+  "Electronics":        "bg-purple-100 text-purple-700",
+  "Clothing & Fashion": "bg-pink-100 text-pink-700",
+  "Food & Beverages":   "bg-orange-100 text-orange-700",
+  "Hardware":           "bg-yellow-100 text-yellow-700",
+  "Stationery":         "bg-cyan-100 text-cyan-700",
+  "Beauty & Cosmetics": "bg-rose-100 text-rose-700",
+  "Sports & Fitness":   "bg-teal-100 text-teal-700",
+  "Books":              "bg-amber-100 text-amber-700",
+  "Toys & Games":       "bg-indigo-100 text-indigo-700",
+};
+
+function getCategoryColor(cat) {
+  return CATEGORY_COLORS[cat] || "bg-slate-100 text-slate-600";
+}
+
 function StoreAdminProfile() {
   const { adminId } = useParams();
   const navigate = useNavigate();
@@ -17,15 +41,15 @@ function StoreAdminProfile() {
 
   // Assign store modal
   const [showAssignStore, setShowAssignStore] = useState(false);
+  const [assigning, setAssigning] = useState(false);
+  const [customCategory, setCustomCategory] = useState("");
   const [storeForm, setStoreForm] = useState({
     name: "", phone: "", email: "",
+    categories: [],
     street: "", city: "", state: "", pincode: ""
   });
-  const [assigning, setAssigning] = useState(false);
 
-  useEffect(() => {
-    fetchAdminData();
-  }, [adminId]);
+  useEffect(() => { fetchAdminData(); }, [adminId]);
 
   const fetchAdminData = async () => {
     try {
@@ -33,7 +57,6 @@ function StoreAdminProfile() {
       const res = await API.get(`/users/admins/${adminId}`);
       const json = res.data;
       if (!json.success) throw new Error(json.message);
-
       setAdmin(json.data.admin);
       setStore(json.data.store);
       setStaff(json.data.staff || []);
@@ -44,6 +67,27 @@ function StoreAdminProfile() {
     }
   };
 
+  const toggleCategory = (cat) => {
+    setStoreForm(prev => ({
+      ...prev,
+      categories: prev.categories.includes(cat)
+        ? prev.categories.filter(c => c !== cat)
+        : [...prev.categories, cat]
+    }));
+  };
+
+  const addCustomCategory = () => {
+    const trimmed = customCategory.trim();
+    if (!trimmed) return;
+    if (storeForm.categories.includes(trimmed)) { alert("Already added"); return; }
+    setStoreForm(prev => ({ ...prev, categories: [...prev.categories, trimmed] }));
+    setCustomCategory("");
+  };
+
+  const removeCategory = (cat) => {
+    setStoreForm(prev => ({ ...prev, categories: prev.categories.filter(c => c !== cat) }));
+  };
+
   const handleAssignStore = async () => {
     try {
       if (!storeForm.name) { alert("Store name is required"); return; }
@@ -51,6 +95,7 @@ function StoreAdminProfile() {
 
       const res = await API.post("/stores", {
         name: storeForm.name,
+        categories: storeForm.categories,
         phone: storeForm.phone,
         email: storeForm.email,
         address: {
@@ -63,10 +108,10 @@ function StoreAdminProfile() {
       });
 
       if (!res.data.success) throw new Error(res.data.message);
-
       alert("Store assigned successfully ✅");
       setShowAssignStore(false);
-      setStoreForm({ name: "", phone: "", email: "", street: "", city: "", state: "", pincode: "" });
+      setStoreForm({ name: "", phone: "", email: "", categories: [], street: "", city: "", state: "", pincode: "" });
+      setCustomCategory("");
       fetchAdminData();
     } catch (err) {
       alert(err.response?.data?.message || err.message || "Failed to assign store");
@@ -80,7 +125,6 @@ function StoreAdminProfile() {
       <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600" />
     </div>
   );
-
   if (error) return <div className="p-6 text-center text-red-500 font-medium">{error}</div>;
   if (!admin) return <div className="p-6 text-center text-slate-500">Admin not found.</div>;
 
@@ -133,7 +177,6 @@ function StoreAdminProfile() {
               <h3 className="font-semibold text-gray-700 flex items-center gap-2">
                 <Store className="w-4 h-4" /> Store Information
               </h3>
-              {/* ✅ ASSIGN STORE BUTTON — only shows if no store assigned */}
               {!store && (
                 <button
                   onClick={() => setShowAssignStore(true)}
@@ -153,6 +196,16 @@ function StoreAdminProfile() {
                     {store.isActive ? "Active" : "Inactive"}
                   </span>
                 </div>
+                {/* Categories */}
+                {store.categories?.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {store.categories.map(cat => (
+                      <span key={cat} className={`text-xs font-semibold px-2.5 py-1 rounded-full ${getCategoryColor(cat)}`}>
+                        {cat}
+                      </span>
+                    ))}
+                  </div>
+                )}
                 {store.address && (
                   <div className="flex items-start gap-3">
                     <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
@@ -197,22 +250,6 @@ function StoreAdminProfile() {
         </div>
       </div>
 
-      {/* PERMISSIONS */}
-      {admin.permissions?.length > 0 && (
-        <div className="bg-white rounded-xl shadow p-6">
-          <h3 className="font-semibold text-gray-700 flex items-center gap-2 mb-3">
-            <Shield className="w-4 h-4" /> Permissions
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {admin.permissions.map((perm) => (
-              <span key={perm} className="bg-indigo-50 text-indigo-700 text-xs font-semibold px-3 py-1.5 rounded-full capitalize">
-                {perm.replace(/_/g, " ")}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* STAFF LIST */}
       <div className="bg-white rounded-xl shadow-lg overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
@@ -223,11 +260,10 @@ function StoreAdminProfile() {
             {staff.length} members
           </span>
         </div>
-
         {staff.length === 0 ? (
           <div className="p-10 text-center text-gray-400">
             <Users className="w-10 h-10 mx-auto mb-2 opacity-30" />
-            <p className="text-sm">No staff members assigned to this store yet</p>
+            <p className="text-sm">No staff members yet</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
@@ -240,7 +276,6 @@ function StoreAdminProfile() {
                   <div>
                     <p className="font-semibold text-gray-800">{member.name}</p>
                     <p className="text-sm text-gray-500">{member.email}</p>
-                    {member.mobile && <p className="text-xs text-gray-400">{member.mobile}</p>}
                   </div>
                 </div>
                 <div className="text-right">
@@ -248,7 +283,7 @@ function StoreAdminProfile() {
                     {member.isActive ? "Active" : "Inactive"}
                   </span>
                   <p className="text-xs text-gray-400 mt-1">
-                    Joined {new Date(member.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                    {new Date(member.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                   </p>
                 </div>
               </div>
@@ -257,7 +292,7 @@ function StoreAdminProfile() {
         )}
       </div>
 
-      {/* ✅ ASSIGN STORE MODAL */}
+      {/* ASSIGN STORE MODAL */}
       {showAssignStore && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
@@ -277,6 +312,66 @@ function StoreAdminProfile() {
                   onChange={(e) => setStoreForm({ ...storeForm, name: e.target.value })}
                   className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                 />
+              </div>
+
+              {/* CATEGORIES */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Categories
+                  <span className="ml-2 text-xs text-slate-400">Select all that apply</span>
+                </label>
+
+                {/* Preset pills */}
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {PRESET_CATEGORIES.map(cat => (
+                    <button
+                      key={cat}
+                      onClick={() => toggleCategory(cat)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition ${
+                        storeForm.categories.includes(cat)
+                          ? `${getCategoryColor(cat)} border-transparent`
+                          : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"
+                      }`}
+                    >
+                      {storeForm.categories.includes(cat) ? "✓ " : ""}{cat}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Custom input */}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Add custom category..."
+                    value={customCategory}
+                    onChange={(e) => setCustomCategory(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && addCustomCategory()}
+                    className="flex-1 p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                  />
+                  <button
+                    onClick={addCustomCategory}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition"
+                  >
+                    Add
+                  </button>
+                </div>
+
+                {/* Selected tags */}
+                {storeForm.categories.length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-xs text-slate-400 mb-2">Selected ({storeForm.categories.length}):</p>
+                    <div className="flex flex-wrap gap-2">
+                      {storeForm.categories.map(cat => (
+                        <span key={cat} className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full ${getCategoryColor(cat)}`}>
+                          {cat}
+                          <button onClick={() => removeCategory(cat)} className="hover:opacity-70">
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Phone */}

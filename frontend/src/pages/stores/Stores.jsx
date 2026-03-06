@@ -2,28 +2,54 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API } from "../../services/api";
 import {
-  Store, Plus, Search, MapPin, Phone, Mail, Users,
+  Store, Search, MapPin, Phone, Mail,
   UserCheck, ToggleLeft, ToggleRight, ChevronRight,
-  X, CheckCircle, Building2, AlertCircle
+  X, CheckCircle, Building2, AlertCircle, Tag, Pencil
 } from "lucide-react";
+
+const PRESET_CATEGORIES = [
+  "Grocery", "Pharmacy", "Electronics", "Clothing & Fashion",
+  "Food & Beverages", "Hardware", "Stationery", "Beauty & Cosmetics",
+  "Sports & Fitness", "Books", "Toys & Games",
+];
+
+const CATEGORY_COLORS = {
+  "Grocery":            "bg-green-100 text-green-700",
+  "Pharmacy":           "bg-blue-100 text-blue-700",
+  "Electronics":        "bg-purple-100 text-purple-700",
+  "Clothing & Fashion": "bg-pink-100 text-pink-700",
+  "Food & Beverages":   "bg-orange-100 text-orange-700",
+  "Hardware":           "bg-yellow-100 text-yellow-700",
+  "Stationery":         "bg-cyan-100 text-cyan-700",
+  "Beauty & Cosmetics": "bg-rose-100 text-rose-700",
+  "Sports & Fitness":   "bg-teal-100 text-teal-700",
+  "Books":              "bg-amber-100 text-amber-700",
+  "Toys & Games":       "bg-indigo-100 text-indigo-700",
+};
+
+function getCategoryColor(cat) {
+  return CATEGORY_COLORS[cat] || "bg-slate-100 text-slate-600";
+}
 
 function Stores() {
   const navigate = useNavigate();
   const [stores, setStores] = useState([]);
-  const [admins, setAdmins] = useState([]); // unassigned admins for dropdown
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [showModal, setShowModal] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState("All");
+
+  // Edit modal
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingStore, setEditingStore] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  const [storeForm, setStoreForm] = useState({
-    name: "", phone: "", email: "", adminId: "",
+  const [customCategory, setCustomCategory] = useState("");
+  const [editForm, setEditForm] = useState({
+    name: "", phone: "", email: "",
+    categories: [],
     street: "", city: "", state: "", pincode: ""
   });
 
-  useEffect(() => {
-    fetchStores();
-    fetchUnassignedAdmins();
-  }, []);
+  useEffect(() => { fetchStores(); }, []);
 
   const fetchStores = async () => {
     try {
@@ -37,44 +63,72 @@ function Stores() {
     }
   };
 
-  const fetchUnassignedAdmins = async () => {
-    try {
-      const res = await API.get("/users");
-      const allUsers = res.data.data || [];
-      // Only admins without a store assigned
-      const unassigned = allUsers.filter(u => u.role === "admin" && !u.storeId);
-      setAdmins(unassigned);
-    } catch (err) {
-      console.error("Failed to fetch admins:", err);
-    }
+  const openEdit = (store) => {
+    setEditingStore(store);
+    setEditForm({
+      name: store.name || "",
+      phone: store.phone || "",
+      email: store.email || "",
+      categories: store.categories || [],
+      street: store.address?.street || "",
+      city: store.address?.city || "",
+      state: store.address?.state || "",
+      pincode: store.address?.pincode || "",
+    });
+    setCustomCategory("");
+    setShowEditModal(true);
   };
 
-  const handleCreateStore = async () => {
+  const toggleCategory = (cat) => {
+    setEditForm(prev => ({
+      ...prev,
+      categories: prev.categories.includes(cat)
+        ? prev.categories.filter(c => c !== cat)
+        : [...prev.categories, cat]
+    }));
+  };
+
+  const addCustomCategory = () => {
+    const trimmed = customCategory.trim();
+    if (!trimmed) return;
+    if (editForm.categories.includes(trimmed)) {
+      alert("Category already added");
+      return;
+    }
+    setEditForm(prev => ({ ...prev, categories: [...prev.categories, trimmed] }));
+    setCustomCategory("");
+  };
+
+  const removeCategory = (cat) => {
+    setEditForm(prev => ({
+      ...prev,
+      categories: prev.categories.filter(c => c !== cat)
+    }));
+  };
+
+  const handleUpdate = async () => {
     try {
-      if (!storeForm.name) { alert("Store name is required"); return; }
-      if (!storeForm.adminId) { alert("Please select an admin for this store"); return; }
+      if (!editForm.name) { alert("Store name is required"); return; }
       setSubmitting(true);
 
-      await API.post("/stores", {
-        name: storeForm.name,
-        phone: storeForm.phone,
-        email: storeForm.email,
+      await API.put(`/stores/${editingStore._id}`, {
+        name: editForm.name,
+        phone: editForm.phone,
+        email: editForm.email,
+        categories: editForm.categories,
         address: {
-          street: storeForm.street,
-          city: storeForm.city,
-          state: storeForm.state,
-          pincode: storeForm.pincode,
+          street: editForm.street,
+          city: editForm.city,
+          state: editForm.state,
+          pincode: editForm.pincode,
         },
-        adminId: storeForm.adminId,
       });
 
-      alert("Store created successfully ✅");
-      setShowModal(false);
-      setStoreForm({ name: "", phone: "", email: "", adminId: "", street: "", city: "", state: "", pincode: "" });
+      alert("Store updated successfully ✅");
+      setShowEditModal(false);
       fetchStores();
-      fetchUnassignedAdmins();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to create store");
+      alert(err.response?.data?.message || "Failed to update store");
     } finally {
       setSubmitting(false);
     }
@@ -89,39 +143,37 @@ function Stores() {
     }
   };
 
-  const filteredStores = stores.filter(s =>
-    s.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.admin?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.address?.city?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // All unique categories across all stores for filter tabs
+  const allCategories = ["All", ...new Set(stores.flatMap(s => s.categories || []).filter(Boolean))];
+
+  const filtered = stores.filter(s => {
+    const matchSearch =
+      s.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      s.admin?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      s.address?.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (s.categories || []).some(c => c.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchCategory = categoryFilter === "All" || (s.categories || []).includes(categoryFilter);
+    return matchSearch && matchCategory;
+  });
 
   const activeCount = stores.filter(s => s.isActive).length;
-  const inactiveCount = stores.filter(s => !s.isActive).length;
+  const uniqueCatCount = new Set(stores.flatMap(s => s.categories || [])).size;
 
   return (
     <div className="p-6 space-y-6">
 
-      {/* HEADER */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
-            <Building2 className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800">Stores</h1>
-            <p className="text-sm text-slate-500">Manage all store locations</p>
-          </div>
+      {/* HEADER — no Create button */}
+      <div className="flex items-center gap-3">
+        <div className="w-11 h-11 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200">
+          <Building2 className="w-5 h-5" />
         </div>
-
-        <button
-          onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow-lg shadow-indigo-200 transition"
-        >
-          <Plus className="w-4 h-4" /> Create Store
-        </button>
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">Stores</h1>
+          <p className="text-sm text-slate-500">View and manage all store locations</p>
+        </div>
       </div>
 
-      {/* STATS ROW */}
+      {/* STATS */}
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-4">
           <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center">
@@ -142,12 +194,12 @@ function Stores() {
           </div>
         </div>
         <div className="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-4">
-          <div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center">
-            <AlertCircle className="w-5 h-5 text-red-400" />
+          <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center">
+            <Tag className="w-5 h-5 text-purple-500" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-slate-800">{inactiveCount}</p>
-            <p className="text-xs text-slate-400 font-medium">Inactive</p>
+            <p className="text-2xl font-bold text-slate-800">{uniqueCatCount}</p>
+            <p className="text-xs text-slate-400 font-medium">Categories</p>
           </div>
         </div>
       </div>
@@ -157,7 +209,7 @@ function Stores() {
         <Search className="w-4 h-4 text-slate-400 shrink-0" />
         <input
           type="text"
-          placeholder="Search by store name, admin, or city..."
+          placeholder="Search by name, admin, city or category..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="flex-1 outline-none text-sm text-slate-700 placeholder:text-slate-400"
@@ -169,79 +221,143 @@ function Stores() {
         )}
       </div>
 
+      {/* CATEGORY FILTER TABS */}
+      {allCategories.length > 1 && (
+        <div className="flex gap-2 flex-wrap">
+          {allCategories.map(cat => (
+            <button
+              key={cat}
+              onClick={() => setCategoryFilter(cat)}
+              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition border ${
+                categoryFilter === cat
+                  ? "bg-indigo-600 text-white border-indigo-600"
+                  : "bg-white text-slate-500 border-slate-200 hover:border-indigo-300 hover:text-indigo-600"
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* STORES GRID */}
       {loading ? (
         <div className="flex items-center justify-center h-48">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600" />
         </div>
-      ) : filteredStores.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <div className="bg-white rounded-xl border border-slate-200 p-16 text-center">
           <Building2 className="w-12 h-12 mx-auto mb-3 text-slate-200" />
           <p className="font-semibold text-slate-400">No stores found</p>
-          <p className="text-sm text-slate-300 mt-1">Create your first store to get started</p>
+          <p className="text-sm text-slate-300 mt-1">Stores are created from the Store Admin profile page</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-          {filteredStores.map((store) => (
+          {filtered.map((store) => (
             <StoreCard
               key={store._id}
               store={store}
               onToggle={handleToggleStore}
+              onEdit={openEdit}
               onViewAdmin={() => store.admin?._id && navigate(`/store-admin/${store.admin._id}`)}
             />
           ))}
         </div>
       )}
 
-      {/* CREATE STORE MODAL */}
-      {showModal && (
+      {/* EDIT MODAL */}
+      {showEditModal && editingStore && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
 
-            {/* Modal Header */}
+            {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-slate-100">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 bg-indigo-100 rounded-lg flex items-center justify-center">
-                  <Store className="w-4 h-4 text-indigo-600" />
+                  <Pencil className="w-4 h-4 text-indigo-600" />
                 </div>
-                <h2 className="text-lg font-bold text-slate-800">Create New Store</h2>
+                <h2 className="text-lg font-bold text-slate-800">Edit Store</h2>
               </div>
-              <button onClick={() => setShowModal(false)} className="p-1.5 hover:bg-slate-100 rounded-lg transition">
+              <button onClick={() => setShowEditModal(false)} className="p-1.5 hover:bg-slate-100 rounded-lg">
                 <X className="w-5 h-5 text-slate-400" />
               </button>
             </div>
 
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-5">
 
               {/* Store Name */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">Store Name *</label>
-                <input type="text" placeholder="e.g. SmartStore Pune"
-                  value={storeForm.name}
-                  onChange={(e) => setStoreForm({ ...storeForm, name: e.target.value })}
+                <input type="text"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
                   className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
                 />
               </div>
 
-              {/* Assign Admin */}
+              {/* CATEGORIES */}
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Assign Admin *</label>
-                {admins.length === 0 ? (
-                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700 flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 shrink-0" />
-                    No unassigned admins available. Create an admin first.
-                  </div>
-                ) : (
-                  <select
-                    value={storeForm.adminId}
-                    onChange={(e) => setStoreForm({ ...storeForm, adminId: e.target.value })}
-                    className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Categories
+                  <span className="ml-2 text-xs text-slate-400 font-normal">Select all that apply</span>
+                </label>
+
+                {/* Preset category pills */}
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {PRESET_CATEGORIES.map(cat => (
+                    <button
+                      key={cat}
+                      onClick={() => toggleCategory(cat)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition ${
+                        editForm.categories.includes(cat)
+                          ? `${getCategoryColor(cat)} border-transparent`
+                          : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"
+                      }`}
+                    >
+                      {editForm.categories.includes(cat) ? "✓ " : ""}{cat}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Custom category input */}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Add custom category..."
+                    value={customCategory}
+                    onChange={(e) => setCustomCategory(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && addCustomCategory()}
+                    className="flex-1 p-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                  />
+                  <button
+                    onClick={addCustomCategory}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition"
                   >
-                    <option value="">Select an admin...</option>
-                    {admins.map(admin => (
-                      <option key={admin._id} value={admin._id}>{admin.name} ({admin.email})</option>
-                    ))}
-                  </select>
+                    Add
+                  </button>
+                </div>
+
+                {/* Selected categories display */}
+                {editForm.categories.length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-xs text-slate-400 mb-2">Selected ({editForm.categories.length}):</p>
+                    <div className="flex flex-wrap gap-2">
+                      {editForm.categories.map(cat => (
+                        <span
+                          key={cat}
+                          className={`flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full ${getCategoryColor(cat)}`}
+                        >
+                          {cat}
+                          <button
+                            onClick={() => removeCategory(cat)}
+                            className="hover:opacity-70 transition"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
 
@@ -249,17 +365,17 @@ function Stores() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1.5">Phone</label>
-                  <input type="text" placeholder="Store phone"
-                    value={storeForm.phone}
-                    onChange={(e) => setStoreForm({ ...storeForm, phone: e.target.value })}
+                  <input type="text"
+                    value={editForm.phone}
+                    onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
                     className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email</label>
-                  <input type="email" placeholder="store@email.com"
-                    value={storeForm.email}
-                    onChange={(e) => setStoreForm({ ...storeForm, email: e.target.value })}
+                  <input type="email"
+                    value={editForm.email}
+                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
                     className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
                   />
                 </div>
@@ -270,24 +386,24 @@ function Stores() {
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">Address</label>
                 <div className="space-y-2">
                   <input type="text" placeholder="Street"
-                    value={storeForm.street}
-                    onChange={(e) => setStoreForm({ ...storeForm, street: e.target.value })}
+                    value={editForm.street}
+                    onChange={(e) => setEditForm({ ...editForm, street: e.target.value })}
                     className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
                   />
                   <div className="grid grid-cols-3 gap-2">
                     <input type="text" placeholder="City"
-                      value={storeForm.city}
-                      onChange={(e) => setStoreForm({ ...storeForm, city: e.target.value })}
+                      value={editForm.city}
+                      onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
                       className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
                     />
                     <input type="text" placeholder="State"
-                      value={storeForm.state}
-                      onChange={(e) => setStoreForm({ ...storeForm, state: e.target.value })}
+                      value={editForm.state}
+                      onChange={(e) => setEditForm({ ...editForm, state: e.target.value })}
                       className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
                     />
                     <input type="text" placeholder="Pincode"
-                      value={storeForm.pincode}
-                      onChange={(e) => setStoreForm({ ...storeForm, pincode: e.target.value })}
+                      value={editForm.pincode}
+                      onChange={(e) => setEditForm({ ...editForm, pincode: e.target.value })}
                       className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
                     />
                   </div>
@@ -295,18 +411,18 @@ function Stores() {
               </div>
             </div>
 
-            {/* Modal Footer */}
+            {/* Footer */}
             <div className="flex gap-3 p-6 border-t border-slate-100">
               <button
-                onClick={handleCreateStore}
+                onClick={handleUpdate}
                 disabled={submitting}
                 className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-semibold transition disabled:opacity-50"
               >
                 <CheckCircle className="w-4 h-4" />
-                {submitting ? "Creating..." : "Create Store"}
+                {submitting ? "Saving..." : "Save Changes"}
               </button>
               <button
-                onClick={() => setShowModal(false)}
+                onClick={() => setShowEditModal(false)}
                 className="flex-1 bg-slate-100 hover:bg-slate-200 py-3 rounded-xl font-semibold transition text-slate-600"
               >
                 Cancel
@@ -320,43 +436,61 @@ function Stores() {
 }
 
 /* ===================== STORE CARD ===================== */
-function StoreCard({ store, onToggle, onViewAdmin }) {
+function StoreCard({ store, onToggle, onEdit, onViewAdmin }) {
   const address = store.address
     ? [store.address.street, store.address.city, store.address.state, store.address.pincode].filter(Boolean).join(", ")
     : null;
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-md transition-shadow">
-      {/* Card Header */}
+
+      {/* Header */}
       <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
           <div className="w-9 h-9 bg-indigo-100 rounded-lg flex items-center justify-center shrink-0">
             <Store className="w-4 h-4 text-indigo-600" />
           </div>
-          <div>
-            <p className="font-bold text-slate-800 text-sm">{store.name}</p>
-            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-              store.isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-500"
-            }`}>
-              {store.isActive ? "Active" : "Inactive"}
-            </span>
+          <div className="min-w-0">
+            <p className="font-bold text-slate-800 text-sm truncate">{store.name}</p>
+            <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                store.isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-500"
+              }`}>
+                {store.isActive ? "Active" : "Inactive"}
+              </span>
+            </div>
           </div>
         </div>
-        {/* Toggle */}
-        <button
-          onClick={() => onToggle(store)}
-          className="text-slate-400 hover:text-indigo-600 transition"
-          title={store.isActive ? "Deactivate store" : "Activate store"}
-        >
-          {store.isActive
-            ? <ToggleRight className="w-7 h-7 text-green-500" />
-            : <ToggleLeft className="w-7 h-7 text-slate-300" />
-          }
-        </button>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            onClick={() => onEdit(store)}
+            className="p-1.5 hover:bg-slate-100 rounded-lg transition"
+            title="Edit store"
+          >
+            <Pencil className="w-4 h-4 text-slate-400 hover:text-indigo-600" />
+          </button>
+          <button onClick={() => onToggle(store)} title={store.isActive ? "Deactivate" : "Activate"}>
+            {store.isActive
+              ? <ToggleRight className="w-7 h-7 text-green-500" />
+              : <ToggleLeft className="w-7 h-7 text-slate-300" />
+            }
+          </button>
+        </div>
       </div>
 
-      {/* Card Body */}
-      <div className="px-5 py-4 space-y-2.5">
+      {/* Categories */}
+      {store.categories?.length > 0 && (
+        <div className="px-5 pt-3 flex flex-wrap gap-1.5">
+          {store.categories.map(cat => (
+            <span key={cat} className={`text-xs font-semibold px-2.5 py-1 rounded-full ${getCategoryColor(cat)}`}>
+              {cat}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Body */}
+      <div className="px-5 py-3 space-y-2">
         {address && (
           <div className="flex items-start gap-2 text-sm text-slate-500">
             <MapPin className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
@@ -377,18 +511,18 @@ function StoreCard({ store, onToggle, onViewAdmin }) {
         )}
       </div>
 
-      {/* Card Footer — Admin */}
+      {/* Footer */}
       <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <UserCheck className="w-4 h-4 text-slate-400" />
-          <span className="text-sm text-slate-600 font-medium">
+          <span className="text-sm text-slate-600 font-medium truncate">
             {store.admin?.name || "No admin assigned"}
           </span>
         </div>
         {store.admin?._id && (
           <button
             onClick={onViewAdmin}
-            className="flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition"
+            className="flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition shrink-0"
           >
             View Admin <ChevronRight className="w-3.5 h-3.5" />
           </button>
