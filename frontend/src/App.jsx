@@ -14,7 +14,8 @@ import StoreAdmins from "./pages/users/StoreAdmins";
 import StoreAdminProfile from "./pages/users/StoreAdminProfile";
 import MyStaff from "./pages/users/MyStaff";
 import CategoryPage from "./pages/users/Category";
-
+import MyOrders from "./pages/users/MyOrders";
+import Orders from "./pages/orders/Orders";
 
 // Stores
 import Stores from "./pages/stores/Stores";
@@ -79,6 +80,15 @@ function App() {
           </ProtectedRoute>
         }
       />
+
+      <Route
+ path="/my-orders"
+ element={
+  <ProtectedRoute roles={["user"]}>
+   <MyOrders/>
+  </ProtectedRoute>
+ }
+/>
 
       {/* ================= SUPER ADMIN ================= */}
 
@@ -192,6 +202,16 @@ function App() {
         }
       />
 
+<Route
+ path="/orders"
+ element={
+  <ProtectedRoute roles={["super_admin"]}>
+   <SuperAdminLayout>
+     <Orders/>
+   </SuperAdminLayout>
+  </ProtectedRoute>
+ }
+/>
       {/* ================= ADMIN ================= */}
 
       <Route

@@ -104,7 +104,7 @@ export default function CartDrawer({ isOpen, onClose }) {
 
             <button
               onClick={() => {
-                navigate("/userdashboard");
+                navigate("/user-dashboard");
                 onClose();
               }}
               className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700"

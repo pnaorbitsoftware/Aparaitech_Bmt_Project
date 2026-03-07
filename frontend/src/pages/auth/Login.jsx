@@ -49,8 +49,20 @@ function Login() {
       }
 
       /* ================= SAVE LOGIN DATA ================= */
-      localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(user));
+    /* ================= SAVE LOGIN DATA ================= */
+
+localStorage.setItem("token", token);
+localStorage.setItem("user", JSON.stringify(user));
+
+/* Save MongoDB id safely */
+const userId = user?._id || user?.id;
+
+if (!userId) {
+  console.error("❌ User ID missing in login response:", user);
+} else {
+  localStorage.setItem("userId", userId);
+  console.log("✅ Saved userId:", userId);
+}
 
       console.log("👤 User role:", user.role);
       console.log("💾 Token saved:", !!token);

@@ -8,12 +8,14 @@ import {
   FaShieldAlt,
   FaSignOutAlt
 } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 
 export default function Profile() {
 
   const [open, setOpen] = useState(false);
   const [user, setUser] = useState(null);
   const dropdownRef = useRef(null);
+  const navigate = useNavigate();
 
   /* Load user from localStorage */
   useEffect(() => {
@@ -86,10 +88,13 @@ export default function Profile() {
           {/* Menu */}
           <div className="flex flex-col">
 
-            <button className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100">
-              <FaClipboardList />
-              My Orders
-            </button>
+            <button
+  onClick={() => navigate("/my-orders")}
+  className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100"
+>
+  <FaClipboardList />
+  My Orders
+</button>
 
             <button className="flex items-center gap-3 px-4 py-3 hover:bg-gray-100">
               <FaMapMarkerAlt />

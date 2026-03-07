@@ -105,6 +105,9 @@ const startServer = async () => {
     const testRoutes = require("./routes/testRoutes");
     const userRoutes = require("./routes/userRoutes");
     const productRoutes = require("./routes/productRoutes");
+    const orderRoutes = require("./routes/ordersRoutes");
+
+
 
 
 
@@ -125,6 +128,7 @@ const startServer = async () => {
     app.use("/api/stores", storeRoutes);
     app.use("/api/delivery-partners", deliveryPartnerRoutes);
     app.use("/api/products", productRoutes);
+    app.use("/api/orders", orderRoutes);
 
     /* ======================
        HEALTH CHECK
