@@ -15,12 +15,14 @@ import StoreAdminProfile from "./pages/users/StoreAdminProfile";
 import MyStaff from "./pages/users/MyStaff";
 import CategoryPage from "./pages/users/Category";
 
+
 // Stores
 import Stores from "./pages/stores/Stores";
 
 // Customers
 import Customers from "./pages/customers/Customers";
 import RegisteredCustomers from "./pages/customers/RegisteredCustomers";
+import Checkout from "./pages/users/Checkout";
 
 import Inventory from "./pages/inventory/Inventory";
 import AddProduct from "./pages/inventory/AddProduct";
@@ -65,6 +67,15 @@ function App() {
         element={
           <ProtectedRoute roles={["user"]}>
             <CategoryPage />
+          </ProtectedRoute>
+        }
+      />
+            {/* CHECKOUT PAGE */}
+      <Route
+        path="/checkout"
+        element={
+          <ProtectedRoute roles={["user"]}>
+            <Checkout />
           </ProtectedRoute>
         }
       />

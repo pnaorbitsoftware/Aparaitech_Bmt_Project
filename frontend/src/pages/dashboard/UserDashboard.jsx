@@ -38,7 +38,6 @@ export default function UserDashboard() {
   };
 
   return (
-
     <div className="min-h-screen bg-gray-100">
 
       {/* Topbar */}
@@ -53,27 +52,32 @@ export default function UserDashboard() {
             Shop by Category
           </h2>
 
-          <div className="flex gap-8 overflow-x-auto pb-3 scroll-smooth no-scrollbar">
+          <div className="overflow-hidden">
 
-            {categories.map((cat, index) => (
+            {/* Rotating container */}
+            <div className="flex gap-8 animate-scroll">
 
-              <div
-                key={index}
-                onClick={() => handleCategoryClick(cat.name)}
-                className="flex flex-col items-center min-w-[80px] cursor-pointer hover:scale-105 transition"
-              >
+              {[...categories, ...categories].map((cat, index) => (
 
-                <div className="bg-purple-100 p-4 rounded-full text-purple-600 text-xl">
-                  {cat.icon}
+                <div
+                  key={index}
+                  onClick={() => handleCategoryClick(cat.name)}
+                  className="flex flex-col items-center min-w-[80px] cursor-pointer hover:scale-105 transition"
+                >
+
+                  <div className="bg-purple-100 p-4 rounded-full text-purple-600 text-xl">
+                    {cat.icon}
+                  </div>
+
+                  <p className="text-xs mt-2 text-center font-medium">
+                    {cat.name}
+                  </p>
+
                 </div>
 
-                <p className="text-xs mt-2 text-center font-medium">
-                  {cat.name}
-                </p>
+              ))}
 
-              </div>
-
-            ))}
+            </div>
 
           </div>
 
@@ -143,6 +147,27 @@ export default function UserDashboard() {
         </div>
 
       </main>
+
+      {/* Animation style */}
+      <style jsx>{`
+  .animate-scroll {
+    animation: scroll 25s linear infinite;
+    width: max-content;
+  }
+
+  .animate-scroll:hover {
+    animation-play-state: paused;
+  }
+
+  @keyframes scroll {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+`}</style>
 
     </div>
   );

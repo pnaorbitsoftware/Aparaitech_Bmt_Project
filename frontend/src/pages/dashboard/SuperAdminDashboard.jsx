@@ -119,13 +119,15 @@ function SuperAdminDashboard() {
           </Link>
           
           <Link
-            to="/customers"
-            className="bg-white rounded-xl shadow p-6 hover:shadow-lg transition text-center"
-          >
-            <div className="text-4xl mb-3">👤</div>
-            <h3 className="font-semibold">Customers</h3>
-            <p className="text-sm text-gray-500 mt-1">View and manage customers</p>
-          </Link>
+  to="/registered-customers"
+  className="bg-white rounded-xl shadow p-6 hover:shadow-lg transition text-center"
+>
+  <div className="text-4xl mb-3">👤</div>
+  <h3 className="font-semibold">Customers</h3>
+  <p className="text-sm text-gray-500 mt-1">
+    View and manage customers
+  </p>
+</Link>
           
           <Link
             to="/inventory"

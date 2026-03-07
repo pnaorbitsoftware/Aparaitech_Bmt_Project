@@ -86,10 +86,10 @@ router.post(
 /* ================= LOGIN ================= */
 
 router.post("/login", async (req, res) => {
-  const { email, password, role } = req.body;
+  const { email, password } = req.body;
 
   try {
-    const user = await User.findOne({ email, role }).select("+password");
+    const user = await User.findOne({ email }).select("+password");
 
     if (!user) {
       return res.status(401).json({
@@ -128,8 +128,10 @@ router.post("/login", async (req, res) => {
       token,
       user: formatUser(user)
     });
+
   } catch (err) {
     console.error("LOGIN ERROR:", err);
+
     res.status(500).json({
       success: false,
       message: "Server error"
