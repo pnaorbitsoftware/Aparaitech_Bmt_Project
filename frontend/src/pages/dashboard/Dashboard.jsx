@@ -33,7 +33,6 @@ function Dashboard() {
   const [paymentData, setPaymentData] = useState([]);
   const [recentTx, setRecentTx] = useState([]);
 
-  /* 🔴 LOW STOCK */
   const [lowStock, setLowStock] = useState({ count: 0, items: [] });
   const [showLowStock, setShowLowStock] = useState(false);
 
@@ -41,7 +40,6 @@ function Dashboard() {
     loadAll();
   }, []);
 
-  /* ================= LOAD ALL ================= */
   const loadAll = async () => {
     await Promise.all([
       loadStats(),
@@ -111,22 +109,36 @@ function Dashboard() {
       {/* TITLE */}
       <div>
         <h1 className="text-3xl font-bold">Business Intelligence</h1>
-        <p className="text-gray-500 mt-1">
-          Holistic view of your store performance
-        </p>
+        <p className="text-gray-500 mt-1">Holistic view of your store performance</p>
       </div>
 
-      {/* STATS */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <StatCard title="Daily Revenue" value={`₹${stats.todayRevenue || 0}`} icon={<TrendingUp />} />
-        <StatCard title="Total Revenue" value={`₹${stats.totalRevenue || 0}`} icon={<Wallet />} />
-        <StatCard title="Orders Today" value={stats.todaySales || 0} icon={<Users />} />
-
+      {/* STATS GRID */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+        <StatCard
+          title="Daily Revenue"
+          value={`₹${Number(stats.todayRevenue || 0).toFixed(2)}`}
+          icon={<TrendingUp />}
+        />
+        <StatCard
+          title="Total Revenue"
+          value={`₹${Number(stats.totalRevenue || 0).toFixed(2)}`}
+          icon={<Wallet />}
+        />
+        <StatCard
+          title="Orders Today"
+          value={(stats.todaySales || 0) + (stats.todayOrders || 0)}
+          icon={<Users />}
+        />
+        <StatCard
+          title="Online Orders"
+          value={stats.totalOrders || 0}
+          icon={<Activity />}
+        />
         <StatCard
           title="Critical Stock"
           value={lowStock.count}
-          icon={<AlertTriangle className="text-red-600" />}
-          danger
+          icon={<AlertTriangle />}
+          danger={lowStock.count > 0}
           onClick={() => setShowLowStock(true)}
         />
       </div>
@@ -141,7 +153,6 @@ function Dashboard() {
             <BarChart2 className="text-green-500" />
             Revenue Trajectory (Weekly)
           </h2>
-
           <ResponsiveContainer width="100%" height={250}>
             <LineChart data={weeklyRevenue}>
               <XAxis dataKey="day" />
@@ -166,7 +177,6 @@ function Dashboard() {
           <h2 className="font-semibold mb-4 flex items-center gap-2">
             <CreditCard className="text-green-500" /> Payment Preference
           </h2>
-
           <ResponsiveContainer width="100%" height={220}>
             <PieChart>
               <Pie data={paymentData} dataKey="count" nameKey="payment_mode" outerRadius={80} label>
@@ -183,7 +193,6 @@ function Dashboard() {
           <h2 className="font-semibold mb-4 flex items-center gap-2">
             <Activity className="text-green-500" /> Live Transactions
           </h2>
-
           <ul className="space-y-3">
             {recentTx.map((tx, i) => (
               <li key={i} className="flex justify-between text-sm">
@@ -203,7 +212,6 @@ function Dashboard() {
               <h2 className="text-xl font-bold text-red-600">🚨 Critical Stock</h2>
               <button onClick={() => setShowLowStock(false)}>✕</button>
             </div>
-
             {lowStock.items.length === 0 ? (
               <p className="text-green-600">All items are sufficiently stocked ✅</p>
             ) : (

@@ -1,239 +1,241 @@
 import { useEffect, useState } from "react";
 import { API } from "../../services/api";
 import { FaEye, FaTimes } from "react-icons/fa";
+import { MapPin, Package } from "lucide-react";
+
+const STATUS_OPTIONS = ["Placed", "Confirmed", "Preparing", "Out for Delivery", "Delivered", "Cancelled"];
+
+const STATUS_COLORS = {
+  Placed:               "bg-blue-100 text-blue-700",
+  Confirmed:            "bg-yellow-100 text-yellow-700",
+  Preparing:            "bg-orange-100 text-orange-700",
+  "Out for Delivery":   "bg-purple-100 text-purple-700",
+  Delivered:            "bg-green-100 text-green-700",
+  Cancelled:            "bg-red-100 text-red-700",
+};
 
 export default function Orders() {
-
   const [orders, setOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [updatingId, setUpdatingId] = useState(null);
+  const [filterStatus, setFilterStatus] = useState("All");
 
-  useEffect(() => {
-    fetchOrders();
-  }, []);
+  useEffect(() => { fetchOrders(); }, []);
 
   const fetchOrders = async () => {
-
     try {
-
+      setLoading(true);
       const res = await API.get("/orders/all");
-
-      setOrders(res.data);
-
+      setOrders(res.data || []);
     } catch (error) {
       console.error("Error fetching orders", error);
+    } finally {
+      setLoading(false);
     }
-
   };
 
-  const statusColor = (status) => {
-
-    if (status === "Delivered")
-      return "bg-green-100 text-green-700";
-
-    if (status === "Processing")
-      return "bg-blue-100 text-blue-700";
-
-    if (status === "Placed")
-      return "bg-yellow-100 text-yellow-700";
-
-    if (status === "Cancelled")
-      return "bg-red-100 text-red-700";
-
-    return "bg-gray-100 text-gray-700";
+  const updateStatus = async (orderId, newStatus) => {
+    try {
+      setUpdatingId(orderId);
+      await API.put(`/orders/${orderId}/status`, { status: newStatus });
+      setOrders(prev => prev.map(o => o._id === orderId ? { ...o, status: newStatus } : o));
+      if (selectedOrder?._id === orderId) setSelectedOrder(prev => ({ ...prev, status: newStatus }));
+    } catch (err) {
+      alert("Failed to update status");
+    } finally {
+      setUpdatingId(null);
+    }
   };
+
+  const formatDate = (d) => new Date(d).toLocaleDateString("en-IN", {
+    day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
+  });
+
+  const filtered = filterStatus === "All" ? orders : orders.filter(o => o.status === filterStatus);
+
+  // Stats
+  const stats = STATUS_OPTIONS.reduce((acc, s) => {
+    acc[s] = orders.filter(o => o.status === s).length;
+    return acc;
+  }, {});
 
   return (
-
     <div className="p-6">
+      <h1 className="text-2xl font-black text-slate-800 mb-6">All Orders</h1>
 
-      {/* Page Title */}
-
-      <h1 className="text-2xl font-bold mb-6">
-        All Orders
-      </h1>
-
-      {/* Orders Table */}
-
-      <div className="overflow-x-auto">
-
-        <table className="w-full bg-white shadow rounded-lg">
-
-          <thead>
-
-            <tr className="bg-gray-100 text-left">
-
-              <th className="p-3">Order ID</th>
-              <th className="p-3">Customer</th>
-              <th className="p-3">Mobile</th>
-              <th className="p-3">Items</th>
-              <th className="p-3">Total</th>
-              <th className="p-3">Status</th>
-              <th className="p-3">Date</th>
-              <th className="p-3">Action</th>
-
-            </tr>
-
-          </thead>
-
-          <tbody>
-
-            {orders.map(order => (
-
-              <tr
-                key={order._id}
-                className="border-t hover:bg-gray-50"
-              >
-
-                {/* Order ID */}
-
-                <td className="p-3 text-sm font-medium">
-                  {order._id.slice(-6)}
-                </td>
-
-                {/* Customer Name */}
-
-                <td className="p-3">
-                  {order.userId?.name || "N/A"}
-                </td>
-
-                {/* Mobile */}
-
-                <td className="p-3">
-                  {order.userId?.mobile || "N/A"}
-                </td>
-
-                {/* Items Count */}
-
-                <td className="p-3">
-                  {order.items?.length}
-                </td>
-
-                {/* Total */}
-
-                <td className="p-3 font-semibold">
-                  ₹{order.totalAmount}
-                </td>
-
-                {/* Status */}
-
-                <td className="p-3">
-
-                  <span className={`px-3 py-1 rounded-full text-sm ${statusColor(order.status)}`}>
-                    {order.status}
-                  </span>
-
-                </td>
-
-                {/* Date */}
-
-                <td className="p-3 text-sm text-gray-500">
-
-                  {new Date(order.createdAt).toLocaleDateString()}
-
-                </td>
-
-                {/* Action */}
-
-                <td className="p-3">
-
-                  <button
-                    onClick={() => setSelectedOrder(order)}
-                    className="flex items-center gap-1 text-blue-600 hover:text-blue-800"
-                  >
-                    <FaEye />
-                    View
-                  </button>
-
-                </td>
-
-              </tr>
-
-            ))}
-
-          </tbody>
-
-        </table>
-
+      {/* Stats */}
+      <div className="grid grid-cols-3 md:grid-cols-6 gap-3 mb-6">
+        {STATUS_OPTIONS.map(s => (
+          <div key={s} className={`rounded-xl p-3 text-center cursor-pointer border-2 transition ${
+            filterStatus === s ? "border-purple-500 bg-purple-50" : "border-transparent bg-white"
+          }`} onClick={() => setFilterStatus(filterStatus === s ? "All" : s)}>
+            <p className="text-2xl font-black text-slate-800">{stats[s] || 0}</p>
+            <p className={`text-xs font-semibold px-1.5 py-0.5 rounded-full mt-1 ${STATUS_COLORS[s]}`}>{s}</p>
+          </div>
+        ))}
       </div>
 
-      {/* ORDER DETAILS MODAL */}
+      {/* Filter tabs */}
+      <div className="flex gap-2 flex-wrap mb-4">
+        {["All", ...STATUS_OPTIONS].map(s => (
+          <button key={s} onClick={() => setFilterStatus(s)}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition ${
+              filterStatus === s ? "bg-purple-600 text-white border-purple-600" : "bg-white text-slate-500 border-slate-200"
+            }`}>
+            {s} {s !== "All" && `(${stats[s] || 0})`}
+          </button>
+        ))}
+      </div>
 
-      {selectedOrder && (
-
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
-
-          <div className="bg-white w-[500px] rounded-lg p-6 shadow-lg relative">
-
-            {/* Close Button */}
-
-            <button
-              onClick={() => setSelectedOrder(null)}
-              className="absolute right-4 top-4 text-gray-500"
-            >
-              <FaTimes />
-            </button>
-
-            <h2 className="text-xl font-bold mb-4">
-              Order Details
-            </h2>
-
-            {/* Customer Info */}
-
-            <p className="mb-2">
-              <b>Customer:</b> {selectedOrder.userId?.name}
-            </p>
-
-            <p className="mb-2">
-              <b>Mobile:</b> {selectedOrder.userId?.mobile}
-            </p>
-
-            <p className="mb-4">
-              <b>Status:</b> {selectedOrder.status}
-            </p>
-
-            {/* Items */}
-
-            <div className="border-t pt-3">
-
-              {selectedOrder.items.map((item,index)=>(
-
-                <div
-                  key={index}
-                  className="flex justify-between py-2"
-                >
-
-                  <span>
-                    {item.name} x{item.quantity}
-                  </span>
-
-                  <span>
-                    ₹{item.price * item.quantity}
-                  </span>
-
-                </div>
-
-              ))}
-
-            </div>
-
-            {/* Total */}
-
-            <div className="flex justify-between border-t pt-3 mt-3 font-bold text-lg">
-
-              <span>Total</span>
-
-              <span>₹{selectedOrder.totalAmount}</span>
-
-            </div>
-
-          </div>
-
+      {/* Table */}
+      {loading ? (
+        <div className="bg-white rounded-2xl p-8 text-center text-slate-400">Loading orders...</div>
+      ) : filtered.length === 0 ? (
+        <div className="bg-white rounded-2xl p-12 text-center text-slate-400">
+          <Package className="w-12 h-12 mx-auto mb-3 opacity-30" />
+          <p>No orders found</p>
         </div>
-
+      ) : (
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 border-b">
+              <tr>
+                <th className="text-left px-4 py-3 font-semibold text-slate-600">Order ID</th>
+                <th className="text-left px-4 py-3 font-semibold text-slate-600">Customer</th>
+                <th className="text-left px-4 py-3 font-semibold text-slate-600">Items</th>
+                <th className="text-left px-4 py-3 font-semibold text-slate-600">Total</th>
+                <th className="text-left px-4 py-3 font-semibold text-slate-600">Date</th>
+                <th className="text-left px-4 py-3 font-semibold text-slate-600">Status</th>
+                <th className="text-left px-4 py-3 font-semibold text-slate-600">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {filtered.map(order => (
+                <tr key={order._id} className="hover:bg-slate-50 transition">
+                  <td className="px-4 py-3 font-mono text-xs text-slate-400">
+                    #{order._id.slice(-6).toUpperCase()}
+                  </td>
+                  <td className="px-4 py-3">
+                    <p className="font-semibold text-slate-800">{order.userId?.name || "—"}</p>
+                    <p className="text-xs text-slate-400">{order.userId?.mobile || order.userId?.email || ""}</p>
+                  </td>
+                  <td className="px-4 py-3 text-slate-600">
+                    {order.items?.length} item{order.items?.length > 1 ? "s" : ""}
+                  </td>
+                  <td className="px-4 py-3 font-bold text-slate-800">₹{order.totalAmount}</td>
+                  <td className="px-4 py-3 text-xs text-slate-400">{formatDate(order.createdAt)}</td>
+                  <td className="px-4 py-3">
+                  <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${STATUS_COLORS[order.status] || "bg-slate-100 text-slate-600"}`}>
+                    {order.status}
+                  </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <button onClick={() => setSelectedOrder(order)}
+                      className="p-2 hover:bg-purple-50 rounded-lg text-purple-600 transition">
+                      <FaEye />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
+      {/* Order Detail Modal */}
+      {selectedOrder && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-lg max-h-[85vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b">
+              <div>
+                <h2 className="font-black text-slate-800">Order Details</h2>
+                <p className="text-xs text-slate-400 font-mono">#{selectedOrder._id.slice(-6).toUpperCase()}</p>
+              </div>
+              <button onClick={() => setSelectedOrder(null)} className="p-2 hover:bg-gray-100 rounded-full">
+                <FaTimes />
+              </button>
+            </div>
+            <div className="p-6 space-y-5">
+
+              {/* Status update */}
+              <div>
+                <label className="text-xs font-semibold text-slate-500 mb-2 block">Update Status</label>
+                <div className="flex flex-wrap gap-2">
+                  {STATUS_OPTIONS.map(s => (
+                    <button key={s} onClick={() => updateStatus(selectedOrder._id, s)}
+                      className={`text-xs px-3 py-1.5 rounded-full font-semibold border transition ${
+                        selectedOrder.status === s
+                          ? STATUS_COLORS[s] + " border-transparent"
+                          : "border-slate-200 text-slate-500 hover:border-purple-300"
+                      }`}>
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Customer */}
+              <div>
+                <h3 className="font-semibold text-slate-700 mb-2">Customer</h3>
+                <p className="text-sm text-slate-600">{selectedOrder.userId?.name || "—"}</p>
+                <p className="text-xs text-slate-400">{selectedOrder.userId?.email || ""}</p>
+              </div>
+
+              {/* Items */}
+              <div>
+                <h3 className="font-semibold text-slate-700 mb-3">Items</h3>
+                <div className="space-y-2">
+                  {selectedOrder.items?.map((item, i) => (
+                    <div key={i} className="flex justify-between text-sm">
+                      <span className="text-slate-600">{item.name} × {item.quantity}</span>
+                      <span className="font-semibold">₹{(item.price * item.quantity).toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Address */}
+              {selectedOrder.address && (
+                <div>
+                  <h3 className="font-semibold text-slate-700 mb-2 flex items-center gap-1">
+                    <MapPin className="w-4 h-4" /> Delivery Address
+                  </h3>
+                  <p className="text-sm text-slate-500">
+                    {[selectedOrder.address.name, selectedOrder.address.street,
+                      selectedOrder.address.city, selectedOrder.address.state,
+                      selectedOrder.address.pincode].filter(Boolean).join(", ")}
+                  </p>
+                  {selectedOrder.address.phone && (
+                    <p className="text-sm text-slate-500">📞 {selectedOrder.address.phone}</p>
+                  )}
+                </div>
+              )}
+
+              {/* Price */}
+              <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm">
+                <div className="flex justify-between text-slate-500">
+                  <span>Items Total</span><span>₹{selectedOrder.itemsTotal?.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-slate-500">
+                  <span>Delivery</span><span>₹{selectedOrder.deliveryCharge}</span>
+                </div>
+                <div className="flex justify-between text-slate-500">
+                  <span>GST</span><span>₹{selectedOrder.gst?.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between font-black text-slate-800 text-base border-t pt-2">
+                  <span>Total</span><span>₹{selectedOrder.totalAmount}</span>
+                </div>
+              </div>
+
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-500">Payment Method</span>
+                <span className="font-semibold">{selectedOrder.paymentMethod || "COD"}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-
   );
-
 }

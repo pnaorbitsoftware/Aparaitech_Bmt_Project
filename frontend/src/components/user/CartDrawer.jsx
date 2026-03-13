@@ -9,6 +9,9 @@ export default function CartDrawer({ isOpen, onClose }) {
 
   useEffect(() => {
     loadCart();
+    const handleUpdate = () => loadCart();
+    window.addEventListener("cartUpdated", handleUpdate);
+    return () => window.removeEventListener("cartUpdated", handleUpdate);
   }, [isOpen]);
 
   const loadCart = () => {

@@ -1,306 +1,180 @@
 import { useEffect, useState } from "react";
 import { API } from "../../services/api";
-import {
-  FaClock,
-  FaTruck,
-  FaBox,
-  FaTimes,
-  FaPhone,
-  FaCheckCircle
-} from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
+import UserTopbar from "../../components/user/UserTopbar";
+import { Package, Clock, ChevronRight, MapPin, X } from "lucide-react";
+
+const STATUS_COLORS = {
+  Placed:     "bg-blue-100 text-blue-700",
+  Confirmed:  "bg-yellow-100 text-yellow-700",
+  Preparing:  "bg-orange-100 text-orange-700",
+  "Out for Delivery": "bg-purple-100 text-purple-700",
+  Delivered:  "bg-green-100 text-green-700",
+  Cancelled:  "bg-red-100 text-red-700",
+};
 
 export default function MyOrders() {
-
   const [orders, setOrders] = useState([]);
-  const [selectedOrder, setSelectedOrder] = useState(null);
-  const [showModal, setShowModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState(null);
+  const navigate = useNavigate();
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
 
   useEffect(() => {
     fetchOrders();
+    const interval = setInterval(fetchOrders, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchOrders = async () => {
-
     try {
-
-      const userId = localStorage.getItem("userId");
-
+      setLoading(true);
+      const userId = user.id || user._id;
       const res = await API.get(`/orders/user/${userId}`);
-
-      setOrders(res.data);
-
+      setOrders(res.data || []);
     } catch (err) {
       console.error(err);
+    } finally {
+      setLoading(false);
     }
-
   };
 
-  const openOrder = (order) => {
-    setSelectedOrder(order);
-    setShowModal(true);
-  };
-
-  const closeModal = () => {
-    setShowModal(false);
-  };
-
-  const statusColor = (status) => {
-    if (status === "Delivered") return "text-green-600";
-    if (status === "Processing") return "text-blue-600";
-    if (status === "Pending") return "text-yellow-600";
-    if (status === "Cancelled") return "text-red-600";
-    return "text-gray-600";
-  };
+  const formatDate = (d) => new Date(d).toLocaleDateString("en-IN", {
+    day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
+  });
 
   return (
+    <div className="min-h-screen bg-gray-50">
+      <UserTopbar />
 
-    <div className="max-w-5xl mx-auto p-6">
+      <div className="max-w-3xl mx-auto px-4 py-8">
+        <h1 className="text-2xl font-black text-slate-800 mb-6">My Orders</h1>
 
-      <div className="flex items-center gap-3 mb-6">
-
-  <img
-    src="https://cdn-icons-png.flaticon.com/512/3500/3500833.png"
-    alt="orders"
-    className="w-10 h-10"
-  />
-
-  <h1 className="text-2xl font-bold">
-    My Orders
-  </h1>
-
-</div>
-
-      {/* Orders List */}
-
-      {orders.map(order => (
-
-        <div
-          key={order._id}
-          className="bg-white border rounded-xl p-5 mb-4 shadow-sm hover:shadow-md transition"
-        >
-
-          <div className="flex justify-between mb-3">
-
-            <span className={`font-semibold ${statusColor(order.status)}`}>
-              {order.status}
-            </span>
-
-            <span className="text-sm text-gray-500">
-              {new Date(order.createdAt).toLocaleDateString()}
-            </span>
-
+        {loading ? (
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="bg-white rounded-2xl p-5 animate-pulse">
+                <div className="h-4 bg-gray-200 rounded w-1/3 mb-3" />
+                <div className="h-3 bg-gray-200 rounded w-1/2" />
+              </div>
+            ))}
           </div>
-
-          <div className="text-sm text-gray-600 mb-3">
-            {order.items.map(i => i.name).join(", ")}
+        ) : orders.length === 0 ? (
+          <div className="text-center py-20">
+            <div className="text-6xl mb-4">📦</div>
+            <p className="text-xl font-bold text-slate-400 mb-2">No orders yet</p>
+            <button onClick={() => navigate("/user-dashboard")}
+              className="mt-4 bg-purple-600 text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-purple-700 transition">
+              Start Shopping
+            </button>
           </div>
+        ) : (
+          <div className="space-y-4">
+            {orders.map(order => (
+              <div key={order._id}
+                onClick={() => setSelected(order)}
+                className="bg-white rounded-2xl p-5 shadow-sm hover:shadow-md transition cursor-pointer">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${STATUS_COLORS[order.status] || "bg-slate-100 text-slate-600"}`}>
+                        {order.status}
+                      </span>
+                      <span className="text-xs text-slate-400">{formatDate(order.createdAt)}</span>
+                    </div>
+                    <p className="text-sm text-slate-500 mt-1">
+                      {order.items?.length} item{order.items?.length > 1 ? "s" : ""} •{" "}
+                      {order.items?.slice(0, 2).map(i => i.name).join(", ")}
+                      {order.items?.length > 2 ? ` +${order.items.length - 2} more` : ""}
+                    </p>
+                    {order.address?.city && (
+                      <p className="text-xs text-slate-400 flex items-center gap-1 mt-1">
+                        <MapPin className="w-3 h-3" /> {order.address.city}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="font-black text-slate-800">₹{order.totalAmount}</span>
+                    <ChevronRight className="w-4 h-4 text-slate-400" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
-          <div className="flex justify-between items-center">
-
-            <div className="font-semibold text-lg">
-              ₹{order.totalAmount}
-            </div>
-
-            <div className="flex gap-4">
-
-              <button
-                onClick={() => openOrder(order)}
-                className="text-green-600 font-semibold text-sm"
-              >
-                View Details
+      {/* Order Detail Modal */}
+      {selected && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-lg max-h-[85vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b">
+              <h2 className="font-black text-slate-800">Order Details</h2>
+              <button onClick={() => setSelected(null)} className="p-2 hover:bg-gray-100 rounded-full">
+                <X className="w-5 h-5" />
               </button>
+            </div>
+            <div className="p-6 space-y-5">
+              {/* Status */}
+              <div className="flex items-center justify-between">
+                <span className={`text-sm font-bold px-3 py-1.5 rounded-full ${STATUS_COLORS[selected.status] || "bg-slate-100 text-slate-600"}`}>
+                  {selected.status}
+                </span>
+                <span className="text-xs text-slate-400">{formatDate(selected.createdAt)}</span>
+              </div>
 
-              {order.status !== "Delivered" && (
-                <button
-                  onClick={() => openOrder(order)}
-                  className="text-blue-600 font-semibold text-sm"
-                >
-                  Track Order
-                </button>
+              {/* Items */}
+              <div>
+                <h3 className="font-semibold text-slate-700 mb-3">Items</h3>
+                <div className="space-y-2">
+                  {selected.items?.map((item, i) => (
+                    <div key={i} className="flex justify-between text-sm">
+                      <span className="text-slate-600">{item.name} × {item.quantity}</span>
+                      <span className="font-semibold">₹{(item.price * item.quantity).toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Address */}
+              {selected.address && (
+                <div>
+                  <h3 className="font-semibold text-slate-700 mb-2 flex items-center gap-1">
+                    <MapPin className="w-4 h-4" /> Delivery Address
+                  </h3>
+                  <p className="text-sm text-slate-500">
+                    {[selected.address.name, selected.address.street, selected.address.city,
+                      selected.address.state, selected.address.pincode].filter(Boolean).join(", ")}
+                  </p>
+                  {selected.address.phone && <p className="text-sm text-slate-500">📞 {selected.address.phone}</p>}
+                </div>
               )}
 
-            </div>
-
-          </div>
-
-        </div>
-
-      ))}
-
-      {/* POPUP MODAL */}
-
-      {showModal && selectedOrder && (
-
-        <div
-          className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50"
-          onClick={closeModal}
-        >
-
-          <div
-            className="bg-white w-[550px] max-h-[85vh] overflow-y-auto rounded-xl shadow-lg p-6 relative animate-fadeIn"
-            onClick={(e) => e.stopPropagation()}
-          >
-
-            {/* Close */}
-
-            <button
-              onClick={closeModal}
-              className="absolute right-4 top-4 text-gray-500"
-            >
-              <FaTimes />
-            </button>
-
-            <h2 className="text-xl font-bold mb-4">
-              Order Details
-            </h2>
-
-            {/* Status */}
-
-            <div className="mb-5">
-
-              <span className={`font-semibold ${statusColor(selectedOrder.status)}`}>
-                {selectedOrder.status}
-              </span>
-
-            </div>
-
-            {/* ORDER TRACKING BAR */}
-
-            <div className="flex justify-between items-center mb-6 text-sm">
-
-              <div className="flex flex-col items-center">
-                <FaCheckCircle className="text-green-500"/>
-                <span>Placed</span>
+              {/* Payment */}
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-500">Payment</span>
+                <span className="font-semibold">{selected.paymentMethod || "COD"}</span>
               </div>
 
-              <div className="flex flex-col items-center">
-                <FaBox className="text-blue-500"/>
-                <span>Packed</span>
-              </div>
-
-              <div className="flex flex-col items-center">
-                <FaTruck className="text-gray-500"/>
-                <span>Out</span>
-              </div>
-
-              <div className="flex flex-col items-center">
-                <FaClock className="text-gray-400"/>
-                <span>Delivered</span>
-              </div>
-
-            </div>
-
-            {/* ITEMS */}
-
-            <div className="border-t pt-4 mb-4">
-
-              {selectedOrder.items.map((item,index)=>(
-                <div
-                  key={index}
-                  className="flex justify-between items-center py-3 border-b"
-                >
-
-                  <div className="flex items-center gap-3">
-
-                    <img
-                      src={item.image || "https://via.placeholder.com/50"}
-                      alt=""
-                      className="w-12 h-12 rounded object-cover"
-                    />
-
-                    <div>
-
-                      <p className="font-medium">
-                        {item.name}
-                      </p>
-
-                      <p className="text-sm text-gray-500">
-                        Qty: {item.quantity}
-                      </p>
-
-                    </div>
-
-                  </div>
-
-                  <span className="font-medium">
-                    ₹{item.price * item.quantity}
-                  </span>
-
+              {/* Price breakdown */}
+              <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm">
+                <div className="flex justify-between text-slate-500">
+                  <span>Items Total</span><span>₹{selected.itemsTotal?.toFixed(2)}</span>
                 </div>
-              ))}
-
-            </div>
-
-            {/* COST BREAKDOWN */}
-
-            <div className="space-y-2 text-sm border-t pt-3">
-
-              <div className="flex justify-between">
-                <span>Subtotal</span>
-                <span>₹{selectedOrder.subtotal}</span>
-              </div>
-
-              <div className="flex justify-between">
-                <span>GST (18%)</span>
-                <span>₹{selectedOrder.gst}</span>
-              </div>
-
-              <div className="flex justify-between">
-                <span>Delivery Charge</span>
-                <span>₹{selectedOrder.deliveryCharge}</span>
-              </div>
-
-            </div>
-
-            {/* TOTAL */}
-
-            <div className="flex justify-between font-bold text-lg border-t pt-3 mt-3">
-              <span>Total</span>
-              <span>₹{selectedOrder.totalAmount}</span>
-            </div>
-
-            {/* DELIVERY PARTNER */}
-
-            {selectedOrder.deliveryPartner && (
-
-              <div className="mt-6 bg-gray-50 p-4 rounded-lg flex justify-between items-center">
-
-                <div>
-
-                  <h3 className="font-semibold">
-                    Delivery Partner
-                  </h3>
-
-                  <p className="text-sm text-gray-600">
-                    {selectedOrder.deliveryPartner.name}
-                  </p>
-
-                  <p className="text-sm text-gray-600">
-                    {selectedOrder.deliveryPartner.phone}
-                  </p>
-
+                <div className="flex justify-between text-slate-500">
+                  <span>Delivery</span><span>₹{selected.deliveryCharge}</span>
                 </div>
-
-                <a
-                  href={`tel:${selectedOrder.deliveryPartner.phone}`}
-                  className="bg-green-500 text-white px-3 py-2 rounded-lg flex items-center gap-2 text-sm"
-                >
-                  <FaPhone/>
-                  Call
-                </a>
-
+                <div className="flex justify-between text-slate-500">
+                  <span>GST</span><span>₹{selected.gst?.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between font-black text-slate-800 text-base border-t border-slate-200 pt-2">
+                  <span>Total</span><span>₹{selected.totalAmount}</span>
+                </div>
               </div>
-
-            )}
-
+            </div>
           </div>
-
         </div>
-
       )}
-
     </div>
-
   );
-
 }

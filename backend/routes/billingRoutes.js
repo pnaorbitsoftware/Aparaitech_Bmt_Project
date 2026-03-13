@@ -35,7 +35,6 @@ router.post("/:id/refund", verifyToken, allowRole(["admin", "super_admin"]), asy
         { $inc: { stock: item.quantity } }
       ).session(session);
 
-      // Optional: log to stock_audit (if you have that model)
       // await StockAudit.create([{ product_id: item.product_id, change_qty: item.quantity, reason: 'REFUND', reference: `REFUND-${id}` }], { session });
     }
 

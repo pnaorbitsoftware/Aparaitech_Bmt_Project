@@ -21,6 +21,7 @@ function formatUser(user) {
     email: user.email,
     mobile: user.mobile,
     role: user.role,
+    storeId: user.storeId || null,
     permissions: user.permissions || []
   };
 }

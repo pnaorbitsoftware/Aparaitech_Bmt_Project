@@ -5,6 +5,20 @@ const allowRole = require("../middleware/roleMiddleware");
 const Store = require("../models/Store");
 const User = require("../models/User");
 
+
+// @desc  Get all active stores (PUBLIC - no auth required)
+// @route GET /api/stores/public
+router.get("/public", async (req, res) => {
+  try {
+    const stores = await Store.find({ isActive: true })
+      .select("name categories address phone isActive")
+      .sort({ createdAt: -1 });
+    res.json({ success: true, data: stores });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Failed to fetch stores" });
+  }
+});
+
 // @desc  Create a store and link it to an admin
 // @route POST /api/stores
 router.post("/", verifyToken, allowRole(["super_admin"]), async (req, res) => {

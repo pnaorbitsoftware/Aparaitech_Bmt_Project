@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 
 const deliveryPartnerSchema = new mongoose.Schema(
   {
@@ -22,6 +23,10 @@ const deliveryPartnerSchema = new mongoose.Schema(
         "Please add a valid email",
       ],
     },
+    password: {
+      type: String,
+      default: null,
+    },
     /* ================= VEHICLE DETAILS ================= */
     vehicleType: {
       type: String,
@@ -32,8 +37,24 @@ const deliveryPartnerSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    /* ================= STORE ASSIGNMENT ================= */
+    storeId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Store",
+      default: null,
+    },
+    /* ================= CURRENT ORDER ================= */
+    currentOrderId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Order",
+      default: null,
+    },
     /* ================= STATUS ================= */
     isActive: {
+      type: Boolean,
+      default: true,
+    },
+    isAvailable: {
       type: Boolean,
       default: true,
     },
@@ -45,5 +66,16 @@ const deliveryPartnerSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+/* Hash password before save */
+deliveryPartnerSchema.pre("save", async function () {
+  if (!this.isModified("password") || !this.password) return;
+  this.password = await bcrypt.hash(this.password, 10);
+});
+
+/* Compare password */
+deliveryPartnerSchema.methods.matchPassword = async function (enteredPassword) {
+  return await bcrypt.compare(enteredPassword, this.password);
+};
 
 module.exports = mongoose.model("DeliveryPartner", deliveryPartnerSchema);

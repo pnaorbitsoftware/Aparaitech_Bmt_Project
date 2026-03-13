@@ -60,7 +60,7 @@ export default function UserTopbar() {
         try {
 
           const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`
+            `http://localhost:5000/api/users/geocode?lat=${lat}&lon=${lon}`
           );
 
           const data = await res.json();
@@ -129,6 +129,11 @@ export default function UserTopbar() {
               type="text"
               placeholder="Search products, shops, food..."
               className="bg-transparent outline-none w-full text-sm"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && e.target.value.trim()) {
+                  navigate(`/category/${encodeURIComponent(e.target.value.trim())}`);
+                }
+              }}
             />
 
           </div>

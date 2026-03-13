@@ -7,6 +7,7 @@ import Dashboard from "./pages/dashboard/Dashboard";
 import SuperAdminDashboard from "./pages/dashboard/SuperAdminDashboard";
 import UserDashboard from "./pages/dashboard/UserDashboard";
 
+
 // Users
 import UserManagement from "./pages/users/UserManagement";
 import AdminStaff from "./pages/users/AdminStaff";
@@ -16,6 +17,11 @@ import MyStaff from "./pages/users/MyStaff";
 import CategoryPage from "./pages/users/Category";
 import MyOrders from "./pages/users/MyOrders";
 import Orders from "./pages/orders/Orders";
+import AdminOrders from "./pages/orders/AdminOrders";
+import ShopPage from "./pages/users/ShopPage";
+import OrderSuccess from "./pages/users/OrderSuccess";
+import DeliveryLogin from "./pages/delivery/DeliveryLogin";
+import DeliveryDashboard from "./pages/delivery/DeliveryDashboard";
 
 // Stores
 import Stores from "./pages/stores/Stores";
@@ -71,6 +77,9 @@ function App() {
           </ProtectedRoute>
         }
       />
+
+      <Route path="/shop/:storeId" element={<ShopPage />} />
+      <Route path="/order-success" element={<OrderSuccess />} />
             {/* CHECKOUT PAGE */}
       <Route
         path="/checkout"
@@ -191,6 +200,9 @@ function App() {
         }
       />
 
+<Route path="/delivery-login" element={<DeliveryLogin />} />
+<Route path="/delivery-dashboard" element={<DeliveryDashboard />} />
+
       <Route
         path="/stores"
         element={
@@ -224,6 +236,17 @@ function App() {
           </ProtectedRoute>
         }
       />
+
+<Route
+  path="/admin-orders"
+  element={
+    <ProtectedRoute roles={["admin"]}>
+      <LayoutWrapper>
+        <AdminOrders />
+      </LayoutWrapper>
+    </ProtectedRoute>
+  }
+/>
 
       {/* ================= MULTI ROLE ================= */}
 

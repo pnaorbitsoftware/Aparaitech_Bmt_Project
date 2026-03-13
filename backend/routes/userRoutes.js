@@ -4,7 +4,21 @@ const userController = require("../controllers/userController");
 const verifyToken = require("../middleware/authMiddleware");
 const allowRole = require("../middleware/roleMiddleware");
 const { getRegisteredUsers } = require("../controllers/userController");
+const axios = require("axios");
 
+
+router.get("/geocode", async (req, res) => {
+    try {
+      const { lat, lon } = req.query;
+      const response = await axios.get(
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`,
+        { headers: { "User-Agent": "SmartStore/1.0" } }
+      );
+      res.json(response.data);
+    } catch (err) {
+      res.status(500).json({ error: "Geocode failed" });
+    }
+  });
 
 
 // ==================== PROFILE ROUTES (any authenticated user) ====================

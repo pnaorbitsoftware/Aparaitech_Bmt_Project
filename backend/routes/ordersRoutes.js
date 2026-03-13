@@ -68,4 +68,78 @@ router.get("/all", async (req, res) => {
 
 });
 
+/* UPDATE ORDER STATUS (SUPER ADMIN) */
+router.put("/:id/status", async (req, res) => {
+  try {
+    const { status } = req.body;
+    const validStatuses = ["Placed", "Confirmed", "Preparing", "Out for Delivery", "Delivered", "Cancelled"];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ error: "Invalid status" });
+    }
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true }
+    );
+    if (!order) return res.status(404).json({ error: "Order not found" });
+    res.json({ success: true, order });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ADD THESE to backend/routes/ordersRoutes.js before module.exports
+
+/* GET ORDERS BY STORE */
+router.get("/store/:storeId", async (req, res) => {
+  try {
+    const orders = await Order.find({ storeId: req.params.storeId })
+      .populate("userId", "name mobile email")
+      .populate("deliveryPartnerId", "name phone vehicleType vehicleNumber")
+      .sort({ createdAt: -1 });
+    res.json(orders);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* UPDATE ORDER STATUS */
+router.put("/:id/status", async (req, res) => {
+  try {
+    const { status } = req.body;
+    const validStatuses = ["Placed", "Confirmed", "Preparing", "Out for Delivery", "Delivered", "Cancelled"];
+    if (!validStatuses.includes(status))
+      return res.status(400).json({ error: "Invalid status" });
+    const order = await Order.findByIdAndUpdate(req.params.id, { status }, { new: true });
+    if (!order) return res.status(404).json({ error: "Order not found" });
+    res.json({ success: true, order });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* ASSIGN DELIVERY PARTNER */
+router.put("/:id/assign-delivery", async (req, res) => {
+  try {
+    const { deliveryPartnerId } = req.body;
+    const DeliveryPartner = require("../models/DeliveryPartner");
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      { deliveryPartnerId, status: "Confirmed" },
+      { new: true }
+    ).populate("deliveryPartnerId", "name phone vehicleType");
+
+    // Mark partner as unavailable
+    await DeliveryPartner.findByIdAndUpdate(deliveryPartnerId, {
+      isAvailable: false,
+      currentOrderId: req.params.id
+    });
+
+    if (!order) return res.status(404).json({ error: "Order not found" });
+    res.json({ success: true, order });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

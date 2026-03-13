@@ -175,6 +175,7 @@ function Sidebar() {
         {isAdmin && (
           <>
             <SidebarItem to="/inventory" icon={<FaBox />} label="Inventory" />
+            <SidebarItem to="/admin-orders" icon={<FaShoppingCart />} label="Orders" />
             <SidebarItem to="/my-staff" icon={<FaUsers />} label="My Staff" />
             <SidebarItem to="/suppliers" icon={<FaTruck />} label="Suppliers" />
             <SidebarItem to="/reports" icon={<FaChartBar />} label="Reports" />

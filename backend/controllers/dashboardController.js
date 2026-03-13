@@ -1,47 +1,49 @@
 const Product = require("../models/Product");
 const Transaction = require("../models/Transaction");
+const Order = require("../models/Order");
 
 /* ==============================
    Dashboard Main Stats
 ============================== */
 exports.getStats = async (req, res) => {
   try {
-    // Get current date at midnight for today's queries
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    // Run all queries in parallel
+    const storeId = req.user.storeId;
+
     const [
       totalProducts,
       totalStock,
       totalRevenue,
       todaySales,
-      todayRevenue
+      todayRevenue,
+      totalOrders,
+      todayOrders
     ] = await Promise.all([
       // Total products count
-      Product.countDocuments({ is_active: 1 }),
-      
+      Product.countDocuments({ is_active: 1, ...(storeId ? { storeId } : {}) }),
+
       // Total stock sum
       Product.aggregate([
-        { $match: { is_active: 1 } },
+        { $match: { is_active: 1, ...(storeId ? { storeId } : {}) } },
         { $group: { _id: null, total: { $sum: "$stock" } } }
       ]).then(result => result[0]?.total || 0),
-      
+
       // Total revenue from successful transactions
       Transaction.aggregate([
         { $match: { status: "SUCCESS" } },
         { $group: { _id: null, total: { $sum: "$total" } } }
       ]).then(result => result[0]?.total || 0),
-      
+
       // Today's sales count
       Transaction.countDocuments({
         status: "SUCCESS",
         created_at: { $gte: today, $lt: tomorrow }
       }),
-      
+
       // Today's revenue
       Transaction.aggregate([
         {
@@ -51,7 +53,16 @@ exports.getStats = async (req, res) => {
           }
         },
         { $group: { _id: null, total: { $sum: "$total" } } }
-      ]).then(result => result[0]?.total || 0)
+      ]).then(result => result[0]?.total || 0),
+
+      // Total online orders for this store
+      Order.countDocuments({ ...(storeId ? { storeId } : {}) }),
+
+      // Today's online orders
+      Order.countDocuments({
+        ...(storeId ? { storeId } : {}),
+        createdAt: { $gte: today, $lt: tomorrow }
+      })
     ]);
 
     const stats = {
@@ -59,7 +70,9 @@ exports.getStats = async (req, res) => {
       totalStock,
       totalRevenue,
       todaySales,
-      todayRevenue
+      todayRevenue,
+      totalOrders,
+      todayOrders
     };
 
     res.json({ success: true, stats });
@@ -74,7 +87,6 @@ exports.getStats = async (req, res) => {
 ============================== */
 exports.getWeeklyRevenue = async (req, res) => {
   try {
-    // Calculate date 6 days ago at midnight
     const sixDaysAgo = new Date();
     sixDaysAgo.setDate(sixDaysAgo.getDate() - 6);
     sixDaysAgo.setHours(0, 0, 0, 0);
@@ -161,9 +173,11 @@ exports.getRecentTransactions = async (req, res) => {
 ============================== */
 exports.getLowStock = async (req, res) => {
   try {
+    const storeId = req.user.storeId;
     const lowStockItems = await Product.find({
       is_active: 1,
-      stock: { $lte: 5 }
+      stock: { $lte: 5 },
+      ...(storeId ? { storeId } : {})
     })
       .select("id name sku stock")
       .sort({ stock: 1 });
