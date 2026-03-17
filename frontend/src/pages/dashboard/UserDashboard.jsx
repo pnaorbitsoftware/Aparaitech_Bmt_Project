@@ -369,7 +369,11 @@ export default function UserDashboard() {
           </div>
         )}
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div style={{ 
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
+  gap: 12
+}}>
           {loading.featured ? (
             // Show skeleton loaders
             <>
@@ -432,7 +436,6 @@ function ProductCard({ product }) {
           ];
 
       localStorage.setItem("cart", JSON.stringify(newCart));
-
       window.dispatchEvent(new Event("cartUpdated"));
       setTimeout(() => window.dispatchEvent(new Event("openCartDrawer")), 100);
 
@@ -441,68 +444,44 @@ function ProductCard({ product }) {
     }
   };
 
-  const handleImageError = () => {
-    setImageError(true);
-  };
-
   return (
     <div
       onClick={() => navigate(`/product/${product._id}`)}
       style={{
         background: "white",
-        borderRadius: 16,
+        borderRadius: 14,
         overflow: "hidden",
-        boxShadow: "0 2px 12px rgba(0,0,0,0.07)",
-        cursor: "pointer"
+        boxShadow: "0 2px 10px rgba(0,0,0,0.06)",
+        cursor: "pointer",
+        padding: 10
       }}
     >
+
+      {/* IMAGE */}
       <div
         style={{
           position: "relative",
-          height: 130,
+          height: 90,
           background: "#f9fafb",
+          borderRadius: 10,
           display: "flex",
           alignItems: "center",
           justifyContent: "center"
         }}
       >
-        {/* PRODUCT IMAGE */}
         {product.image && !imageError ? (
-         <img
-  src={`http://localhost:5000/uploads/${product.image}`}
-  alt={product.name}
-  style={{
-    width: "100%",
-    height: "120px",
-    objectFit: "contain",
-    padding: "8px",
-    background: "#f9fafb"
-  }}
-  loading="lazy"
-            onError={handleImageError}
-/>
-           
-        ) : (
-          <span style={{ fontSize: 42 }}>📦</span>
-        )}
-
-        {/* FEATURED BADGE */}
-        {product.is_featured === true && (
-          <span
+          <img
+            src={`http://localhost:5000/uploads/${product.image}`}
+            alt={product.name}
             style={{
-              position: "absolute",
-              top: 8,
-              left: 8,
-              background: "#1a9c3e",
-              color: "white",
-              fontSize: 9,
-              fontWeight: 700,
-              padding: "3px 8px",
-              borderRadius: 20
+              width: "100%",
+              height: "80px",
+              objectFit: "contain"
             }}
-          >
-            ⭐ Bestseller
-          </span>
+            onError={() => setImageError(true)}
+          />
+        ) : (
+          <span style={{ fontSize: 28 }}>📦</span>
         )}
 
         {/* ADD BUTTON */}
@@ -510,21 +489,17 @@ function ProductCard({ product }) {
           onClick={addToCart}
           style={{
             position: "absolute",
-            bottom: 8,
-            right: 8,
+            bottom: -10,
+            right: -10,
             background: "#1a9c3e",
             color: "white",
             border: "none",
-            borderRadius: 10,
-            width: 34,
-            height: 34,
-            fontSize: 20,
+            borderRadius: 8,
+            width: 28,
+            height: 28,
+            fontSize: 18,
             cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontWeight: 700,
-            boxShadow: "0 2px 8px rgba(26,156,62,0.4)"
+            boxShadow: "0 3px 8px rgba(0,0,0,0.15)"
           }}
         >
           +
@@ -532,35 +507,30 @@ function ProductCard({ product }) {
       </div>
 
       {/* PRODUCT INFO */}
-      <div style={{ padding: "10px 12px" }}>
+      <div style={{ marginTop: 12 }}>
         <div
           style={{
-            fontWeight: 700,
-            fontSize: 13,
+            fontWeight: 600,
+            fontSize: 12,
             color: "#111827",
-            marginBottom: 2
+            height: 32,
+            overflow: "hidden"
           }}
         >
           {product.name}
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span
-            style={{
-              fontWeight: 800,
-              fontSize: 14,
-              color: "#111827"
-            }}
-          >
+          <span style={{ fontWeight: 800, fontSize: 13 }}>
             ₹{product.discount_price || product.price}
           </span>
 
           {product.discount_price && (
             <span
               style={{
-                fontSize: 11,
-                color: "#9ca3af",
-                textDecoration: "line-through"
+                fontSize: 10,
+                textDecoration: "line-through",
+                color: "#9ca3af"
               }}
             >
               ₹{product.price}
