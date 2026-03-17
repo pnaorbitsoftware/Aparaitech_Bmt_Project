@@ -24,7 +24,7 @@ function Inventory() {
   const [showEdit, setShowEdit] = useState(false);
   const [editProduct, setEditProduct] = useState(null);
 
-  const emptyForm = { name: "", sku: "", category: "", price: "", discount_price: "", stock: "", reorder_level: "5", expiryDate: "", is_featured: false };
+  const emptyForm = { name: "", sku: "", category: "", price: "", discount_price: "", stock: "", reorder_level: "5", expiryDate: "", is_featured: false, image_url: "" };
   const [form, setForm] = useState(emptyForm);
 
   /* ── load ── */
@@ -409,6 +409,47 @@ function ProductForm({ product, setProduct, onSubmit, submitLabel }) {
           <p className="text-xs text-amber-600 mt-1">⚠ No store categories set — showing defaults. Add categories to your store first.</p>
         )}
       </div>
+
+      {/* IMAGE UPLOAD */}
+<div>
+  <label className="block text-xs font-semibold text-slate-600 mb-1">Product Image</label>
+  <div className="border border-slate-200 rounded-lg p-3 space-y-2">
+    {/* URL input */}
+    <input
+      className="border border-slate-200 p-2.5 w-full rounded-lg text-sm focus:ring-2 focus:ring-green-400 outline-none"
+      placeholder="Paste image URL (optional)"
+      value={product.image_url || ""}
+      onChange={e => setProduct({ ...product, image_url: e.target.value })}
+    />
+    <div className="text-xs text-slate-400 text-center">— or upload a file —</div>
+    {/* File upload */}
+    <input
+      type="file"
+      accept="image/*"
+      className="text-sm w-full"
+      onChange={async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const formData = new FormData();
+        formData.append("image", file);
+        try {
+          const res = await API.post("/inventory/upload-image", formData, {
+            headers: { "Content-Type": "multipart/form-data" }
+          });
+          setProduct({ ...product, image_url: res.data.imageUrl });
+          alert("✅ Image uploaded!");
+        } catch (err) {
+          alert("Failed to upload image");
+        }
+      }}
+    />
+    {/* Preview */}
+    {product.image_url && (
+      <img src={product.image_url} alt="preview"
+        style={{ width: "100%", height: 120, objectFit: "cover", borderRadius: 8, marginTop: 4 }} />
+    )}
+  </div>
+</div>
 
       <div className="grid grid-cols-2 gap-3">
         {[

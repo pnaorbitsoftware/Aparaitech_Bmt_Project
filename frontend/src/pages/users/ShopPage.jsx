@@ -1,65 +1,41 @@
-import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import UserTopbar from "../../components/user/UserTopbar";
-import { MapPin, Phone, Mail, Clock, ChevronLeft, Tag } from "lucide-react";
+import { FaArrowLeft, FaSearch, FaMapMarkerAlt, FaPhone } from "react-icons/fa";
 
 const PUBLIC = axios.create({ baseURL: "http://localhost:5000/api" });
-
-const CATEGORY_COLORS = {
-  "Grocery": "bg-green-100 text-green-700",
-  "Pharmacy": "bg-blue-100 text-blue-700",
-  "Electronics": "bg-purple-100 text-purple-700",
-  "Clothing & Fashion": "bg-pink-100 text-pink-700",
-  "Food & Beverages": "bg-orange-100 text-orange-700",
-  "Hardware": "bg-yellow-100 text-yellow-700",
-  "Stationery": "bg-cyan-100 text-cyan-700",
-  "Beauty & Cosmetics": "bg-rose-100 text-rose-700",
-  "Sports & Fitness": "bg-teal-100 text-teal-700",
-  "Books": "bg-amber-100 text-amber-700",
-  "Toys & Games": "bg-indigo-100 text-indigo-700",
-};
-
-function getCatColor(cat) {
-  return CATEGORY_COLORS[cat] || "bg-slate-100 text-slate-600";
-}
 
 export default function ShopPage() {
   const { storeId } = useParams();
   const navigate = useNavigate();
   const [store, setStore] = useState(null);
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [cart, setCart] = useState(JSON.parse(localStorage.getItem("cart") || "[]"));
   const [categoryFilter, setCategoryFilter] = useState("All");
-  const [cart, setCart] = useState([]);
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchStore();
-    const storedCart = JSON.parse(localStorage.getItem("cart")) || [];
-    setCart(storedCart);
+    const fetchAll = async () => {
+      try {
+        const [storeRes, prodRes] = await Promise.all([
+          PUBLIC.get("/stores/public"),
+          PUBLIC.get(`/inventory/public?storeId=${storeId}`)
+        ]);
+        const storesData = Array.isArray(storeRes.data)
+          ? storeRes.data
+          : storeRes.data?.stores || storeRes.data?.data || [];
+        setStore(storesData.find(s => s._id === storeId));
+
+        const prodsData = Array.isArray(prodRes.data)
+          ? prodRes.data
+          : prodRes.data?.products || prodRes.data?.data || [];
+        setProducts(prodsData);
+      } catch (e) { console.error(e); }
+      finally { setLoading(false); }
+    };
+    fetchAll();
   }, [storeId]);
-
-  const fetchStore = async () => {
-    try {
-      setLoading(true);
-      const [storeRes, productsRes] = await Promise.allSettled([
-        PUBLIC.get(`/stores/public`),
-        PUBLIC.get(`/inventory/public?storeId=${storeId}`),
-      ]);
-
-      if (storeRes.status === "fulfilled") {
-        const found = (storeRes.value.data?.data || []).find(s => s._id === storeId);
-        setStore(found || null);
-      }
-      if (productsRes.status === "fulfilled") {
-        setProducts(productsRes.value.data || []);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const updateCart = (newCart) => {
     setCart(newCart);
@@ -67,151 +43,158 @@ export default function ShopPage() {
     window.dispatchEvent(new Event("cartUpdated"));
   };
 
-  const addToCart = (product) => {
-    const existing = cart.find(p => p._id === product._id || p.id === product.id);
-    const pid = product._id || product.id;
+  const addToCart = (e, product) => {
+    e.stopPropagation();
+    const pid = product._id;
+    const price = product.discount_price || product.price;
+    const existing = cart.find(p => p._id === pid);
     const newCart = existing
-      ? cart.map(p => (p._id || p.id) === pid ? { ...p, quantity: p.quantity + 1 } : p)
-      : [...cart, { ...product, _id: pid, quantity: 1, price: product.discount_price || product.price }];
+      ? cart.map(p => p._id === pid ? { ...p, quantity: p.quantity + 1 } : p)
+      : [...cart, { ...product, _id: pid, price, quantity: 1 }];
     updateCart(newCart);
     setTimeout(() => window.dispatchEvent(new Event("openCartDrawer")), 100);
   };
 
-  const decreaseQty = (product) => {
-    const pid = product._id || product.id;
-    const updated = cart
-      .map(p => (p._id || p.id) === pid ? { ...p, quantity: p.quantity - 1 } : p)
-      .filter(p => p.quantity > 0);
-    updateCart(updated);
+  const decreaseQty = (e, product) => {
+    e.stopPropagation();
+    const pid = product._id;
+    updateCart(cart.map(p => p._id === pid ? { ...p, quantity: p.quantity - 1 } : p).filter(p => p.quantity > 0));
   };
 
-  const getQty = (id) => {
-    const item = cart.find(p => (p._id || p.id) === id);
-    return item ? item.quantity : 0;
-  };
-
-  const allCategories = ["All", ...new Set(products.map(p => p.category).filter(Boolean))];
-  const filtered = categoryFilter === "All" ? products : products.filter(p => p.category === categoryFilter);
-
-  const address = store?.address
-    ? [store.address.street, store.address.city, store.address.state].filter(Boolean).join(", ")
-    : null;
+  const getQty = (id) => cart.find(p => p._id === id)?.quantity || 0;
+  const categories = ["All", ...new Set(products.map(p => p.category).filter(Boolean))];
+  const filtered = products.filter(p => {
+    const matchCat = categoryFilter === "All" || p.category === categoryFilter;
+    const matchSearch = !search || p.name.toLowerCase().includes(search.toLowerCase());
+    return matchCat && matchSearch;
+  });
+  const cartTotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
+  const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
 
   if (loading) return (
-    <div className="min-h-screen bg-gray-50">
-      <UserTopbar />
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-600" />
-      </div>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#f5f5f0" }}>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      <div style={{ width: 40, height: 40, border: "4px solid #e5e7eb", borderTop: "4px solid #1a9c3e", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <UserTopbar />
+    <div style={{ fontFamily: "'DM Sans', sans-serif", background: "#f5f5f0", minHeight: "100vh", paddingBottom: 80 }}>
+      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
 
-      <div className="max-w-6xl mx-auto px-4 py-6">
-
-        {/* Back */}
-        <button onClick={() => navigate("/user-dashboard")}
-          className="flex items-center gap-2 text-slate-500 hover:text-purple-600 text-sm mb-4 transition">
-          <ChevronLeft className="w-4 h-4" /> Back to Home
+      {/* HERO */}
+      <div style={{ position: "relative", height: 220, background: "linear-gradient(135deg,#1a9c3e,#0d5c24)", overflow: "hidden" }}>
+        <button onClick={() => navigate(-1)} style={{ position: "absolute", top: 16, left: 16, zIndex: 10, background: "rgba(255,255,255,0.2)", border: "none", borderRadius: "50%", width: 38, height: 38, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+          <FaArrowLeft color="white" size={15} />
         </button>
-
-        {/* Store Banner */}
-        <div className="bg-gradient-to-r from-purple-600 to-violet-700 rounded-2xl p-6 mb-6 text-white">
-          <div className="flex items-start justify-between flex-wrap gap-4">
-            <div>
-              <h1 className="text-2xl font-black">{store?.name || "Store"}</h1>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {(store?.categories || []).map(cat => (
-                  <span key={cat} className="text-xs bg-white/20 px-2.5 py-1 rounded-full font-semibold">{cat}</span>
-                ))}
-              </div>
-              <div className="mt-3 space-y-1 text-purple-100 text-sm">
-                {address && <p className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" />{address}</p>}
-                {store?.phone && <p className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5" />{store.phone}</p>}
-              </div>
-            </div>
-            <div className="flex items-center gap-2 bg-white/20 px-4 py-2 rounded-xl">
-              <Clock className="w-4 h-4" />
-              <span className="text-sm font-semibold">15-30 min delivery</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Category filter tabs */}
-        {allCategories.length > 1 && (
-          <div className="flex gap-2 flex-wrap mb-6">
-            {allCategories.map(cat => (
-              <button key={cat} onClick={() => setCategoryFilter(cat)}
-                className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition ${
-                  categoryFilter === cat
-                    ? "bg-purple-600 text-white border-purple-600"
-                    : "bg-white text-slate-500 border-slate-200 hover:border-purple-300"
-                }`}>
-                {cat}
-              </button>
+        <div style={{ position: "absolute", right: -30, top: -30, width: 160, height: 160, borderRadius: "50%", background: "rgba(255,255,255,0.05)" }} />
+        <div style={{ position: "absolute", right: 40, bottom: -40, width: 120, height: 120, borderRadius: "50%", background: "rgba(255,255,255,0.05)" }} />
+        <div style={{ position: "absolute", bottom: 20, left: 20, right: 20 }}>
+          <h1 style={{ color: "white", fontWeight: 900, fontSize: 26, margin: 0, textTransform: "uppercase" }}>{store?.name || "Store"}</h1>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+            {(store?.categories || []).map((c, i) => (
+              <span key={i} style={{ background: "rgba(255,255,255,0.2)", color: "white", fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20 }}>{c}</span>
             ))}
           </div>
-        )}
+          {store?.address && <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 6, color: "rgba(255,255,255,0.8)", fontSize: 12 }}><FaMapMarkerAlt size={10} /><span>{store.address}</span></div>}
+          {store?.phone && <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 3, color: "rgba(255,255,255,0.8)", fontSize: 12 }}><FaPhone size={10} /><span>{store.phone}</span></div>}
+        </div>
+      </div>
 
-        {/* Products */}
+      {/* INFO STRIP */}
+      <div style={{ background: "white", padding: "10px 16px", display: "flex", gap: 20, borderBottom: "1px solid #f0f0f0" }}>
+        {[{v:"4.5 ⭐",l:"Rating"},{v:"15 min",l:"Delivery"},{v:"₹40",l:"Delivery fee"},{v:products.length,l:"Products",g:true}].map((s,i)=>(
+          <div key={i} style={{ textAlign: "center" }}>
+            <div style={{ fontWeight: 800, fontSize: 14, color: s.g ? "#1a9c3e" : "#111" }}>{s.v}</div>
+            <div style={{ fontSize: 10, color: "#6b7280" }}>{s.l}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* SEARCH */}
+      <div style={{ padding: "12px 16px" }}>
+        <div style={{ background: "white", borderRadius: 12, padding: "10px 14px", display: "flex", alignItems: "center", gap: 10, boxShadow: "0 1px 6px rgba(0,0,0,0.06)" }}>
+          <FaSearch color="#9ca3af" size={13} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search in this store..."
+            style={{ flex: 1, border: "none", outline: "none", fontSize: 13, color: "#374151", background: "transparent" }} />
+        </div>
+      </div>
+
+      {/* CATEGORY TABS */}
+      <div style={{ padding: "0 16px", marginBottom: 16 }}>
+        <div style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 4 }}>
+          {categories.map(cat => (
+            <button key={cat} onClick={() => setCategoryFilter(cat)}
+              style={{ flexShrink: 0, padding: "7px 16px", borderRadius: 20, border: "none", fontWeight: 700, fontSize: 13, cursor: "pointer", background: categoryFilter === cat ? "#1a9c3e" : "white", color: categoryFilter === cat ? "white" : "#374151", boxShadow: "0 1px 6px rgba(0,0,0,0.08)", transition: "all 0.2s" }}>
+              {cat}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* PRODUCTS GRID */}
+      <div style={{ padding: "0 16px" }}>
         {filtered.length === 0 ? (
-          <div className="text-center py-20 text-slate-400">
-            <div className="text-6xl mb-4">📦</div>
-            <p className="text-xl font-semibold">No products yet</p>
+          <div style={{ textAlign: "center", padding: "60px 0", color: "#9ca3af" }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>🛒</div>
+            <div style={{ fontWeight: 700, fontSize: 16 }}>No products found</div>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             {filtered.map(product => {
-              const pid = product._id || product.id;
-              const qty = getQty(pid);
+              const qty = getQty(product._id);
               return (
-                <div key={pid} className="bg-white rounded-2xl p-4 shadow-sm hover:shadow-md transition-all">
-                  <div className="h-32 bg-purple-50 rounded-xl mb-3 flex items-center justify-center">
-                    {product.image
-                      ? <img src={product.image} alt={product.name} className="h-full w-full object-cover rounded-xl" />
-                      : <span className="text-4xl">📦</span>
+                <div key={product._id}
+                  onClick={() => navigate(`/product/${product._id}`)}
+                  style={{ background: "white", borderRadius: 16, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.07)", cursor: "pointer" }}>
+                  <div style={{ position: "relative", height: 130, background: "#f9fafb", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    {product.image_url
+                      ? <img src={product.image_url} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      : <span style={{ fontSize: 42 }}>📦</span>
                     }
-                  </div>
-                  <h3 className="font-semibold text-sm text-slate-800 line-clamp-2 mb-1">{product.name}</h3>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getCatColor(product.category)}`}>
-                    {product.category}
-                  </span>
-                  <div className="mt-2 mb-3">
-                    {product.discount_price ? (
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-black text-purple-700">₹{product.discount_price}</span>
-                        <span className="text-xs text-slate-400 line-through">₹{product.price}</span>
-                      </div>
+                    {product.is_featured && (
+                      <span style={{ position: "absolute", top: 8, left: 8, background: "#1a9c3e", color: "white", fontSize: 9, fontWeight: 700, padding: "3px 8px", borderRadius: 20 }}>⭐ Bestseller</span>
+                    )}
+                    {qty === 0 ? (
+                      <button onClick={e => addToCart(e, product)}
+                        style={{ position: "absolute", bottom: 8, right: 8, background: "#1a9c3e", color: "white", border: "none", borderRadius: 10, width: 34, height: 34, fontSize: 20, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, boxShadow: "0 2px 8px rgba(26,156,62,0.4)" }}>
+                        +
+                      </button>
                     ) : (
-                      <span className="font-black text-purple-700">₹{product.price}</span>
+                      <div onClick={e => e.stopPropagation()}
+                        style={{ position: "absolute", bottom: 8, right: 8, background: "#1a9c3e", borderRadius: 10, display: "flex", alignItems: "center", overflow: "hidden", boxShadow: "0 2px 8px rgba(26,156,62,0.4)" }}>
+                        <button onClick={e => decreaseQty(e, product)} style={{ background: "none", border: "none", color: "white", fontWeight: 700, fontSize: 18, padding: "4px 10px", cursor: "pointer" }}>−</button>
+                        <span style={{ color: "white", fontWeight: 700, fontSize: 13, minWidth: 16, textAlign: "center" }}>{qty}</span>
+                        <button onClick={e => addToCart(e, product)} style={{ background: "none", border: "none", color: "white", fontWeight: 700, fontSize: 18, padding: "4px 10px", cursor: "pointer" }}>+</button>
+                      </div>
                     )}
                   </div>
-
-                  {product.stock === 0 ? (
-                    <button disabled className="w-full border border-gray-200 text-gray-400 py-1.5 rounded-full text-sm">
-                      Out of Stock
-                    </button>
-                  ) : qty === 0 ? (
-                    <button onClick={() => addToCart(product)}
-                      className="w-full border-2 border-purple-500 text-purple-600 py-1.5 rounded-full text-sm font-semibold hover:bg-purple-50 transition">
-                      ADD
-                    </button>
-                  ) : (
-                    <div className="flex items-center justify-between bg-purple-600 text-white rounded-full px-3 py-1.5">
-                      <button onClick={() => decreaseQty(product)} className="font-bold text-lg leading-none">−</button>
-                      <span className="font-bold text-sm">{qty}</span>
-                      <button onClick={() => addToCart(product)} className="font-bold text-lg leading-none">+</button>
+                  <div style={{ padding: "10px 12px" }}>
+                    <div style={{ fontWeight: 700, fontSize: 13, color: "#111827", marginBottom: 2 }}>{product.name}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ fontWeight: 800, fontSize: 14, color: "#111827" }}>₹{product.discount_price || product.price}</span>
+                      {product.discount_price && <span style={{ fontSize: 11, color: "#9ca3af", textDecoration: "line-through" }}>₹{product.price}</span>}
                     </div>
-                  )}
+                  </div>
                 </div>
               );
             })}
           </div>
         )}
       </div>
+
+      {/* CART BAR */}
+      {cartCount > 0 && (
+        <div style={{ position: "fixed", bottom: 16, left: 16, right: 16, zIndex: 50 }}>
+          <button onClick={() => navigate("/checkout")}
+            style={{ width: "100%", background: "#1a9c3e", color: "white", border: "none", borderRadius: 16, padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer", boxShadow: "0 4px 20px rgba(26,156,62,0.4)" }}>
+            <span style={{ background: "rgba(255,255,255,0.2)", borderRadius: 8, padding: "2px 10px", fontWeight: 700, fontSize: 14 }}>{cartCount} items</span>
+            <span style={{ fontWeight: 800, fontSize: 16 }}>Proceed to Checkout</span>
+            <span style={{ fontWeight: 700, fontSize: 14 }}>₹{cartTotal.toFixed(2)}</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

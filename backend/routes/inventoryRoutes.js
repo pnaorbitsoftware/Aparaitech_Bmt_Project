@@ -4,6 +4,7 @@ const authMiddleware = require("../middleware/authMiddleware");
 const allowRoles = require("../middleware/roleMiddleware");
 const inventoryController = require("../controllers/inventoryController");
 const Product = require("../models/Product");
+const upload = require("../middleware/uploadMiddleware");
 
 /* =========================
    PUBLIC - no auth required
@@ -38,6 +39,11 @@ router.get("/public", async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch products" });
   }
+});
+
+router.post("/upload-image", authMiddleware, allowRoles(["admin","super_admin"]), upload.single("image"), (req, res) => {
+  if (!req.file) return res.status(400).json({ message: "No image" });
+  res.json({ success: true, imageUrl: `http://localhost:5000/uploads/${req.file.filename}` });
 });
 
 /* =========================

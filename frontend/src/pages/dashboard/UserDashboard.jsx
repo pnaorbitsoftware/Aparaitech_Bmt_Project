@@ -1,198 +1,495 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import UserTopbar from "../../components/user/UserTopbar";
-import {
-  FaShoppingBasket, FaCapsules, FaMobileAlt, FaTshirt,
-  FaHamburger, FaTools, FaBook, FaPumpSoap, FaDumbbell,
-  FaGamepad, FaPencilAlt
-} from "react-icons/fa";
-import { MapPin, Clock, Tag, ChevronRight, Star, Package } from "lucide-react";
+import { FaSearch, FaShoppingCart, FaMapMarkerAlt, FaChevronDown, FaFire, FaStar } from "react-icons/fa";
+import { IoFlash } from "react-icons/io5";
+import CartDrawer from "../../components/user/CartDrawer";
 
 const PUBLIC = axios.create({ baseURL: "http://localhost:5000/api" });
 
-const CATEGORY_CONFIG = [
-  { name: "Grocery",            icon: <FaShoppingBasket />, bg: "bg-green-100",  text: "text-green-600" },
-  { name: "Pharmacy",           icon: <FaCapsules />,       bg: "bg-blue-100",   text: "text-blue-600" },
-  { name: "Electronics",        icon: <FaMobileAlt />,      bg: "bg-purple-100", text: "text-purple-600" },
-  { name: "Clothing & Fashion", icon: <FaTshirt />,         bg: "bg-pink-100",   text: "text-pink-600" },
-  { name: "Food & Beverages",   icon: <FaHamburger />,      bg: "bg-orange-100", text: "text-orange-600" },
-  { name: "Hardware",           icon: <FaTools />,          bg: "bg-yellow-100", text: "text-yellow-600" },
-  { name: "Stationery",         icon: <FaPencilAlt />,      bg: "bg-cyan-100",   text: "text-cyan-600" },
-  { name: "Beauty & Cosmetics", icon: <FaPumpSoap />,       bg: "bg-rose-100",   text: "text-rose-600" },
-  { name: "Sports & Fitness",   icon: <FaDumbbell />,       bg: "bg-teal-100",   text: "text-teal-600" },
-  { name: "Books",              icon: <FaBook />,           bg: "bg-amber-100",  text: "text-amber-600" },
-  { name: "Toys & Games",       icon: <FaGamepad />,        bg: "bg-indigo-100", text: "text-indigo-600" },
+const CATEGORIES = [
+  { label: "Bestsellers", emoji: "⭐", color: "#fff8e1" },
+  { label: "Grocery", emoji: "🛒", color: "#e8f5e9" },
+  { label: "Pharmacy", emoji: "💊", color: "#fce4ec" },
+  { label: "Electronics", emoji: "📱", color: "#e3f2fd" },
+  { label: "Clothing & Fashion", emoji: "👗", color: "#f3e5f5" },
+  { label: "Food & Beverages", emoji: "🍔", color: "#fff3e0" },
+  { label: "Hardware", emoji: "🔧", color: "#efebe9" },
+  { label: "Stationery", emoji: "✏️", color: "#f1f8e9" },
+  { label: "Beauty & Cosmetics", emoji: "💄", color: "#fce4ec" },
+  { label: "Sports & Fitness", emoji: "🏋️", color: "#e0f7fa" },
+  { label: "Books", emoji: "📚", color: "#f9fbe7" },
+  { label: "Toys & Games", emoji: "🎮", color: "#ede7f6" },
 ];
 
-const CATEGORY_COLORS = {
-  "Grocery": "bg-green-100 text-green-700",
-  "Pharmacy": "bg-blue-100 text-blue-700",
-  "Electronics": "bg-purple-100 text-purple-700",
-  "Clothing & Fashion": "bg-pink-100 text-pink-700",
-  "Food & Beverages": "bg-orange-100 text-orange-700",
-  "Hardware": "bg-yellow-100 text-yellow-700",
-  "Stationery": "bg-cyan-100 text-cyan-700",
-  "Beauty & Cosmetics": "bg-rose-100 text-rose-700",
-  "Sports & Fitness": "bg-teal-100 text-teal-700",
-  "Books": "bg-amber-100 text-amber-700",
-  "Toys & Games": "bg-indigo-100 text-indigo-700",
-};
+const PROMOS = [
+  { bg: "linear-gradient(135deg,#1a9c3e,#0d5c24)", title: "50% OFF UNLOCKED", sub: "FREE DELIVERY • Use Code: TRY50", badge: "🎉" },
+  { bg: "linear-gradient(135deg,#f59e0b,#d97706)", title: "ORDER ABOVE ₹199", sub: "Get free delivery on your first order!", badge: "🚀" },
+  { bg: "linear-gradient(135deg,#6366f1,#4f46e5)", title: "NEW ARRIVALS", sub: "Fresh products added this week!", badge: "✨" },
+];
+
+// Skeleton Loader Components
+const StoreSkeleton = () => (
+  <div style={{ flexShrink: 0, width: 160, background: "white", borderRadius: 16, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.08)" }}>
+    <div style={{ height: 90, background: "#e5e7eb", animation: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite" }} />
+    <div style={{ padding: "10px 12px" }}>
+      <div style={{ height: 16, background: "#e5e7eb", borderRadius: 4, marginBottom: 8, width: "80%", animation: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite" }} />
+      <div style={{ height: 20, background: "#e5e7eb", borderRadius: 20, width: "60%", animation: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite" }} />
+    </div>
+  </div>
+);
+
+const ProductSkeleton = () => (
+  <div style={{ background: "white", borderRadius: 16, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.07)" }}>
+    <div style={{ height: 130, background: "#e5e7eb", animation: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite" }} />
+    <div style={{ padding: "10px 12px" }}>
+      <div style={{ height: 16, background: "#e5e7eb", borderRadius: 4, marginBottom: 8, width: "80%", animation: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite" }} />
+      <div style={{ height: 20, background: "#e5e7eb", borderRadius: 4, width: "40%", animation: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite" }} />
+    </div>
+  </div>
+);
 
 export default function UserDashboard() {
   const navigate = useNavigate();
   const [stores, setStores] = useState([]);
-  const [featuredProducts, setFeaturedProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [featured, setFeatured] = useState([]);
+  const [cart, setCart] = useState([]);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
+  const [location, setLocation] = useState("Detecting...");
+  const [search, setSearch] = useState("");
+  const [promoIdx, setPromoIdx] = useState(0);
+  const [loading, setLoading] = useState({ stores: true, featured: true });
+  const [error, setError] = useState({ stores: null, featured: null });
+  const searchRef = useRef();
 
-  useEffect(() => {
-    fetchDashboardData();
+  // Memoize functions to prevent unnecessary re-renders
+  const loadCartCount = useCallback(() => {
+    try {
+      const c = JSON.parse(localStorage.getItem("cart") || "[]");
+      setCartCount(Array.isArray(c) ? c.reduce((s, i) => s + (i.quantity || 0), 0) : 0);
+    } catch (error) {
+      console.error("Error loading cart:", error);
+      setCartCount(0);
+    }
   }, []);
 
-  const fetchDashboardData = async () => {
+  const getLocation = useCallback(async () => {
+    if (!navigator.geolocation) {
+      setLocation("Location unavailable");
+      return;
+    }
+    
+    navigator.geolocation.getCurrentPosition(
+      async pos => {
+        try {
+          const r = await fetch(`http://localhost:5000/api/users/geocode?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`);
+          if (!r.ok) throw new Error('Geocoding failed');
+          const d = await r.json();
+          setLocation(d.address?.city || d.address?.town || d.address?.village || "Your City");
+        } catch (error) {
+          console.error("Geocoding error:", error);
+          setLocation("Location found");
+        }
+      },
+      () => setLocation("Location denied"),
+      { timeout: 10000 }
+    );
+  }, []);
+
+  // Get user initial safely
+  const getUserInitial = useCallback(() => {
     try {
-      setLoading(true);
-      const [storesRes, productsRes] = await Promise.allSettled([
-        PUBLIC.get("/stores/public"),
-        PUBLIC.get("/inventory/public?featured=true"),
-      ]);
-      if (storesRes.status === "fulfilled") setStores(storesRes.value.data?.data || []);
-      if (productsRes.status === "fulfilled") setFeaturedProducts(productsRes.value.data || []);
-    } catch (err) {
-      console.error("Dashboard load error:", err);
-    } finally {
-      setLoading(false);
+      const userData = JSON.parse(localStorage.getItem("user") || "{}");
+      const name = userData?.name || "User";
+      return name.charAt(0).toUpperCase();
+    } catch (error) {
+      console.error("Error parsing user data:", error);
+      return "U";
+    }
+  }, []);
+
+  useEffect(() => {
+    const fetchStores = async () => {
+      try {
+        setLoading(prev => ({ ...prev, stores: true }));
+        const response = await PUBLIC.get("/stores/public");
+        const d = response.data;
+        setStores(Array.isArray(d) ? d : d?.stores || d?.data || []);
+        setError(prev => ({ ...prev, stores: null }));
+      } catch (error) {
+        console.error("Error fetching stores:", error);
+        setError(prev => ({ ...prev, stores: "Failed to load stores" }));
+        setStores([]);
+      } finally {
+        setLoading(prev => ({ ...prev, stores: false }));
+      }
+    };
+
+    const fetchFeatured = async () => {
+      try {
+        setLoading(prev => ({ ...prev, featured: true }));
+        const response = await PUBLIC.get("/inventory/public?featured=true");
+        const d = response.data;
+        setFeatured(Array.isArray(d) ? d : d?.products || d?.data || []);
+        setError(prev => ({ ...prev, featured: null }));
+      } catch (error) {
+        console.error("Error fetching featured products:", error);
+        setError(prev => ({ ...prev, featured: "Failed to load featured products" }));
+        setFeatured([]);
+      } finally {
+        setLoading(prev => ({ ...prev, featured: false }));
+      }
+    };
+
+    fetchStores();
+    fetchFeatured();
+    loadCartCount();
+    getLocation();
+
+    const t = setInterval(() => setPromoIdx(i => (i + 1) % PROMOS.length), 3500);
+    
+    const onCart = () => loadCartCount();
+    const onOpen = () => setCartOpen(true);
+    
+    window.addEventListener("cartUpdated", onCart);
+    window.addEventListener("openCartDrawer", onOpen);
+    
+    return () => { 
+      clearInterval(t); 
+      window.removeEventListener("cartUpdated", onCart); 
+      window.removeEventListener("openCartDrawer", onOpen); 
+    };
+  }, [loadCartCount, getLocation]); // Added dependencies
+
+  const handleSearch = (e) => {
+    if (e.key === "Enter" && search.trim()) {
+      navigate(`/category/${encodeURIComponent(search.trim())}`);
     }
   };
 
-  const handleCategoryClick = (catName) => {
-    navigate(`/category/${encodeURIComponent(catName)}`);
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      <UserTopbar />
+    <div style={{ fontFamily: "'DM Sans', sans-serif", background: "#f5f5f0", minHeight: "100vh" }}>
+      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+      
+      {/* Add keyframe animations for skeleton loading */}
+      <style>
+        {`
+          @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+          }
+        `}
+      </style>
 
-      <div className="max-w-6xl mx-auto px-4 py-8 space-y-10">
-
-        {/* Hero Banner */}
-        <div className="bg-gradient-to-r from-purple-600 to-violet-700 rounded-2xl p-8 text-white flex justify-between items-center">
+      {/* TOP NAV */}
+      <div style={{ background: "#1a9c3e", padding: "14px 16px 0", position: "sticky", top: 0, zIndex: 50 }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12 }}>
           <div>
-            <h1 className="text-3xl font-black mb-2">Delivery in 15 minutes 🚀</h1>
-            <p className="text-purple-200">Order groceries, food, clothes, electronics in one place</p>
+            <div style={{ display: "flex", alignItems: "center", gap: 4, color: "white" }}>
+              <span style={{ fontWeight: 800, fontSize: 20 }}>10 Minutes</span>
+              <IoFlash color="#facc15" size={18} />
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 4, color: "rgba(255,255,255,0.85)", fontSize: 13, marginTop: 2 }}>
+              <FaMapMarkerAlt size={11} />
+              <span style={{ maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{location}</span>
+              <FaChevronDown size={10} />
+            </div>
           </div>
-          <div className="hidden md:flex items-center gap-2 bg-white/20 px-5 py-3 rounded-xl">
-            <Clock className="w-5 h-5" />
-            <span className="font-semibold">15 min delivery</span>
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <div 
+              onClick={() => setCartOpen(true)} 
+              style={{ position: "relative", background: "rgba(255,255,255,0.15)", borderRadius: "50%", width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+              aria-label="Shopping cart"
+            >
+              <FaShoppingCart color="white" size={17} />
+              {cartCount > 0 && (
+                <span style={{ position: "absolute", top: -4, right: -4, background: "#ef4444", color: "white", fontSize: 10, fontWeight: 700, borderRadius: "50%", width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  {cartCount}
+                </span>
+              )}
+            </div>
+            <div 
+              onClick={() => navigate("/profile")} 
+              style={{ background: "rgba(255,255,255,0.2)", borderRadius: "50%", width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontWeight: 800, color: "white", fontSize: 16 }}
+              aria-label="Profile"
+            >
+              {getUserInitial()}
+            </div>
           </div>
         </div>
 
-        {/* Categories */}
-        <div>
-          <h2 className="text-xl font-black text-slate-800 mb-4">Shop by Category</h2>
-          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-11 gap-3">
-            {CATEGORY_CONFIG.map(cat => (
-              <div key={cat.name}
-                onClick={() => handleCategoryClick(cat.name)}
-                className="flex flex-col items-center gap-2 cursor-pointer hover:scale-105 transition">
-                <div className={`${cat.bg} ${cat.text} w-14 h-14 rounded-2xl flex items-center justify-center text-xl shadow-sm`}>
-                  {cat.icon}
-                </div>
-                <p className="text-xs text-center font-medium text-slate-600 leading-tight">{cat.name}</p>
+        {/* SEARCH BAR */}
+        <div style={{ background: "white", borderRadius: "14px 14px 0 0", padding: "10px 14px", display: "flex", alignItems: "center", gap: 10 }}>
+          <FaSearch color="#9ca3af" size={15} />
+          <input
+            ref={searchRef}
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            onKeyDown={handleSearch}
+            placeholder='Search products, stores...'
+            style={{ flex: 1, border: "none", outline: "none", fontSize: 14, color: "#374151", background: "transparent" }}
+            aria-label="Search"
+          />
+        </div>
+      </div>
+
+      {/* PROMO BANNER */}
+      <div style={{ margin: "0 16px 16px", marginTop: 12, borderRadius: 16, overflow: "hidden", position: "relative" }}>
+        {PROMOS.map((p, index) => (
+          <div 
+            key={`promo-${index}`} // Added prefix for uniqueness
+            style={{
+              display: index === promoIdx ? "flex" : "none",
+              background: p.bg, padding: "20px 20px", borderRadius: 16,
+              alignItems: "center", justifyContent: "space-between", minHeight: 110,
+              transition: "all 0.3s"
+            }}
+          >
+            <div>
+              <div style={{ color: "#facc15", fontWeight: 900, fontSize: 24, lineHeight: 1.1 }}>{p.title}</div>
+              <div style={{ color: "rgba(255,255,255,0.85)", fontSize: 12, marginTop: 6 }}>{p.sub}</div>
+            </div>
+            <div style={{ fontSize: 48 }}>{p.badge}</div>
+          </div>
+        ))}
+        <div style={{ display: "flex", gap: 6, justifyContent: "center", marginTop: 8 }}>
+          {PROMOS.map((_, index) => (
+            <div 
+              key={`promo-dot-${index}`} // Added prefix for uniqueness
+              onClick={() => setPromoIdx(index)} 
+              style={{ 
+                width: index === promoIdx ? 20 : 6, 
+                height: 6, 
+                borderRadius: 3, 
+                background: index === promoIdx ? "#1a9c3e" : "#d1d5db", 
+                cursor: "pointer", 
+                transition: "all 0.3s" 
+              }}
+              aria-label={`Go to promo ${index + 1}`}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* CATEGORIES SCROLL */}
+      <div style={{ padding: "0 16px", marginBottom: 20 }}>
+        <div style={{ display: "flex", gap: 16, overflowX: "auto", paddingBottom: 8, scrollbarWidth: "none" }}>
+          {CATEGORIES.map((cat) => (
+            <div 
+              key={`category-${cat.label}`} // Using label as key since it's unique
+              onClick={() => navigate(`/category/${encodeURIComponent(cat.label)}`)}
+              style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 6, cursor: "pointer" }}
+            >
+              <div style={{ width: 64, height: 64, borderRadius: 16, background: cat.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, boxShadow: "0 2px 8px rgba(0,0,0,0.08)" }}>
+                {cat.emoji}
               </div>
-            ))}
-          </div>
+              <span style={{ fontSize: 11, fontWeight: 600, color: "#374151", textAlign: "center", maxWidth: 64, lineHeight: 1.2 }}>{cat.label}</span>
+            </div>
+          ))}
         </div>
+      </div>
 
-        {/* Stores */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-black text-slate-800">Stores Near You</h2>
-            <span className="text-sm text-slate-400">{stores.length} stores</span>
+      {/* STORES SECTION */}
+      <div style={{ padding: "0 16px", marginBottom: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: 18, color: "#111827" }}>Stores Near You</div>
+            <div style={{ fontSize: 12, color: "#1a9c3e", fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+              <FaFire size={11} /> Trending near you
+            </div>
           </div>
-
-          {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="bg-white rounded-2xl p-5 animate-pulse">
-                  <div className="h-32 bg-gray-200 rounded-xl mb-3" />
-                  <div className="h-4 bg-gray-200 rounded w-2/3 mb-2" />
-                  <div className="h-3 bg-gray-200 rounded w-1/2" />
-                </div>
-              ))}
-            </div>
-          ) : stores.length === 0 ? (
-            <div className="text-center py-12 text-slate-400">
-              <Package className="w-12 h-12 mx-auto mb-3 opacity-30" />
-              <p>No stores available yet</p>
-            </div>
+          <span 
+            onClick={() => navigate("/stores")} 
+            style={{ color: "#1a9c3e", fontWeight: 700, fontSize: 13, cursor: "pointer" }}
+          >
+            View all &gt;
+          </span>
+        </div>
+        
+        {error.stores && (
+          <div style={{ color: "#ef4444", textAlign: "center", padding: "20px" }}>
+            {error.stores}
+          </div>
+        )}
+        
+        <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 8, scrollbarWidth: "none" }}>
+          {loading.stores ? (
+            // Show skeleton loaders
+            <>
+              <StoreSkeleton />
+              <StoreSkeleton />
+              <StoreSkeleton />
+            </>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {stores.map(store => (
-                <div key={store._id}
-                  onClick={() => navigate(`/shop/${store._id}`)}
-                  className="bg-white rounded-2xl shadow-sm hover:shadow-md transition cursor-pointer overflow-hidden group">
-                  {/* Store header */}
-                  <div className="h-32 bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center relative">
-                    <span className="text-5xl">🏪</span>
-                    <div className="absolute top-3 right-3 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full font-semibold">
-                      Open
-                    </div>
+            stores.map(store => (
+              <div 
+                key={store._id} 
+                onClick={() => navigate(`/shop/${store._id}`)}
+                style={{ flexShrink: 0, width: 160, background: "white", borderRadius: 16, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.08)", cursor: "pointer" }}
+              >
+                <div style={{ height: 90, background: "linear-gradient(135deg,#1a9c3e,#0d5c24)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36 }}>
+                  🏪
+                </div>
+                <div style={{ padding: "10px 12px" }}>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: "#111827", marginBottom: 4 }}>{store.name}</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                    {(store.categories || []).slice(0, 1).map(c => (
+                      <span 
+                        key={`${store._id}-${c}`} // Using store ID + category for uniqueness
+                        style={{ background: "#e8f5e9", color: "#1a9c3e", fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 20 }}
+                      >
+                        {c}
+                      </span>
+                    ))}
                   </div>
-                  <div className="p-4">
-                    <h3 className="font-bold text-slate-800 text-base mb-2 group-hover:text-purple-600 transition">
-                      {store.name}
-                    </h3>
-                    {/* Category badges */}
-                    <div className="flex flex-wrap gap-1.5 mb-3">
-                      {(store.categories || []).map(cat => (
-                        <span key={cat} className={`text-xs px-2 py-0.5 rounded-full font-medium ${CATEGORY_COLORS[cat] || "bg-slate-100 text-slate-600"}`}>
-                          {cat}
-                        </span>
-                      ))}
-                    </div>
-                    {/* Address */}
-                    {store.address?.city && (
-                      <p className="text-xs text-slate-400 flex items-center gap-1">
-                        <MapPin className="w-3 h-3" />
-                        {store.address.city}
-                      </p>
-                    )}
-                    <div className="flex items-center justify-between mt-3">
-                      <span className="text-xs text-slate-400 flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> 15-30 min
-                      </span>
-                      <span className="text-xs text-purple-600 font-semibold flex items-center gap-1">
-                        Visit Store <ChevronRight className="w-3 h-3" />
-                      </span>
-                    </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 6 }}>
+                    <FaStar color="#facc15" size={11} />
+                    <span style={{ fontSize: 11, color: "#6b7280" }}>4.5 • 15 min</span>
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))
           )}
         </div>
+      </div>
 
-        {/* Featured Products */}
-        {featuredProducts.length > 0 && (
+      {/* FEATURED PRODUCTS */}
+      <div style={{ padding: "0 16px", marginBottom: 80 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <div>
-            <h2 className="text-xl font-black text-slate-800 mb-4">⭐ Featured Products</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {featuredProducts.map(product => (
-                <div key={product.id || product._id}
-                  onClick={() => navigate(`/shop/${product.storeId?._id || product.storeId}`)}
-                  className="bg-white rounded-2xl p-3 shadow-sm hover:shadow-md transition cursor-pointer">
-                  <div className="h-24 bg-purple-50 rounded-xl mb-2 flex items-center justify-center">
-                    <span className="text-3xl">📦</span>
-                  </div>
-                  <p className="text-xs font-semibold text-slate-800 line-clamp-2 mb-1">{product.name}</p>
-                  <p className="text-xs font-black text-purple-700">₹{product.discount_price || product.price}</p>
-                </div>
-              ))}
-            </div>
+            <div style={{ fontWeight: 800, fontSize: 18, color: "#111827" }}>Featured Products</div>
+            <div style={{ fontSize: 12, color: "#6b7280" }}>Handpicked for you</div>
+          </div>
+        </div>
+
+        {error.featured && (
+          <div style={{ color: "#ef4444", textAlign: "center", padding: "20px" }}>
+            {error.featured}
           </div>
         )}
 
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          {loading.featured ? (
+            // Show skeleton loaders
+            <>
+              <ProductSkeleton />
+              <ProductSkeleton />
+              <ProductSkeleton />
+              <ProductSkeleton />
+            </>
+          ) : (
+            featured.slice(0, 6).map(product => (
+              <ProductCard key={product._id} product={product} />
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* BOTTOM OFFER BAR */}
+      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "white", borderTop: "1px solid #e5e7eb", padding: "10px 16px", display: "flex", alignItems: "center", gap: 10, zIndex: 40 }}>
+        <div style={{ background: "#1a9c3e", borderRadius: "50%", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <span style={{ fontSize: 14, color: "white" }}>%</span>
+        </div>
+        <div>
+          <div style={{ fontWeight: 700, fontSize: 13, color: "#1a9c3e" }}>50% upto ₹150 off</div>
+          <div style={{ fontSize: 11, color: "#6b7280" }}>USE TRY50 | ABOVE ₹99</div>
+        </div>
+      </div>
+
+      <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
+    </div>
+  );
+}
+
+function ProductCard({ product }) {
+  const navigate = useNavigate();
+  const [imageError, setImageError] = useState(false);
+
+  const addToCart = (e) => {
+    e.stopPropagation();
+    
+    try {
+      const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+      const pid = product._id;
+      const existing = cart.find(p => p._id === pid);
+      const price = product.discount_price || product.price;
+      
+      const newCart = existing
+        ? cart.map(p => p._id === pid ? { ...p, quantity: (p.quantity || 0) + 1 } : p)
+        : [...cart, { 
+            ...product, 
+            _id: pid, 
+            price, 
+            quantity: 1,
+            name: product.name,
+            image_url: product.image_url 
+          }];
+      
+      localStorage.setItem("cart", JSON.stringify(newCart));
+      window.dispatchEvent(new Event("cartUpdated"));
+      setTimeout(() => window.dispatchEvent(new Event("openCartDrawer")), 100);
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+    }
+  };
+
+  const handleImageError = () => {
+    setImageError(true);
+  };
+
+  return (
+    <div 
+      onClick={() => navigate(`/product/${product._id}`)}
+      style={{ background: "white", borderRadius: 16, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.07)", cursor: "pointer" }}
+    >
+      <div style={{ position: "relative", height: 130, background: "#f9fafb", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        {product.image_url && !imageError ? (
+          <img 
+            src={product.image_url} 
+            alt={product.name} 
+            style={{ width: "100%", height: "100%", objectFit: "cover" }} 
+            loading="lazy"
+            onError={handleImageError}
+          />
+        ) : (
+          <span style={{ fontSize: 42 }}>📦</span>
+        )}
+        
+        {product.is_featured === true && (
+          <span style={{ position: "absolute", top: 8, left: 8, background: "#1a9c3e", color: "white", fontSize: 9, fontWeight: 700, padding: "3px 8px", borderRadius: 20 }}>
+            ⭐ Bestseller
+          </span>
+        )}
+        
+        <button 
+          onClick={addToCart} 
+          style={{ 
+            position: "absolute", bottom: 8, right: 8, 
+            background: "#1a9c3e", color: "white", border: "none", 
+            borderRadius: 10, width: 34, height: 34, fontSize: 20, 
+            cursor: "pointer", display: "flex", alignItems: "center", 
+            justifyContent: "center", fontWeight: 700, 
+            boxShadow: "0 2px 8px rgba(26,156,62,0.4)"
+          }}
+          aria-label="Add to cart"
+        >
+          +
+        </button>
+      </div>
+      
+      <div style={{ padding: "10px 12px" }}>
+        <div style={{ fontWeight: 700, fontSize: 13, color: "#111827", marginBottom: 2 }}>{product.name}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ fontWeight: 800, fontSize: 14, color: "#111827" }}>
+            ₹{product.discount_price || product.price}
+          </span>
+          {product.discount_price && (
+            <span style={{ fontSize: 11, color: "#9ca3af", textDecoration: "line-through" }}>
+              ₹{product.price}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

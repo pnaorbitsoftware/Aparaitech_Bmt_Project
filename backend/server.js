@@ -129,6 +129,7 @@ const startServer = async () => {
     app.use("/api/delivery-partners", deliveryPartnerRoutes);
     app.use("/api/products", productRoutes);
     app.use("/api/orders", orderRoutes);
+    app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
     /* ======================
        HEALTH CHECK

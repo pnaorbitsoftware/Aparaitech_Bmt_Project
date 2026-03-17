@@ -1,235 +1,146 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import {
-  FaEye, FaEyeSlash, FaStore, FaUser, FaUsers, FaMotorcycle
-} from "react-icons/fa";
-import { API } from "../../services/api";
+import { FaEye, FaEyeSlash, FaStore, FaUser, FaMotorcycle } from "react-icons/fa";
+import { IoFlash } from "react-icons/io5";
 
-function Login() {
+const API_BASE = axios.create({ baseURL: "http://localhost:5000/api" });
+
+export default function Login() {
   const navigate = useNavigate();
-
-  const [userType, setUserType] = useState("store");
-  const [role, setRole] = useState("super_admin");
-  const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState("superadmin@example.com");
-  const [password, setPassword] = useState("SuperAdmin@123");
-  const [error, setError] = useState("");
+  const [tab, setTab] = useState("user");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState("");
+  const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  const handleLogin = async () => {
     setError("");
-    setLoading(true);
-
+    if (tab === "delivery") {
+      if (!phone || !password) { setError("Enter phone and password"); return; }
+    } else {
+      if (!email || !password) { setError("Enter email and password"); return; }
+    }
     try {
-
-      /* ── DELIVERY PARTNER LOGIN ── */
-      if (userType === "delivery") {
-        const res = await axios.post("http://localhost:5000/api/delivery-partners/login", {
-          phone: email.trim(),
-          password: password.trim(),
-        });
-        const { token, partner } = res.data;
-        localStorage.setItem("dp_token", token);
-        localStorage.setItem("dp_user", JSON.stringify(partner));
-        window.location.href = "/delivery-dashboard";
-        return;
+      setLoading(true);
+      if (tab === "delivery") {
+        const res = await API_BASE.post("/delivery-partners/login", { phone, password });
+        localStorage.setItem("dp_token", res.data.token);
+        localStorage.setItem("dp_user", JSON.stringify(res.data.partner));
+        navigate("/delivery-dashboard");
+      } else {
+        const res = await API_BASE.post("/auth/login", { email, password });
+        localStorage.setItem("token", res.data.token);
+        localStorage.setItem("user", JSON.stringify(res.data.user));
+        const role = res.data.user?.role;
+        if (role === "user") navigate("/user-dashboard");
+        else if (role === "super_admin") navigate("/super-admin-dashboard");
+        else navigate("/dashboard");
       }
-
-      /* ── NORMAL / STORE LOGIN ── */
-      const loginData = {
-        email: email.trim(),
-        password: password.trim(),
-        role: userType === "store" ? role : "user",
-      };
-
-      console.log("📤 Sending login data:", loginData);
-      const res = await API.post("/auth/login", loginData);
-      console.log("📥 Login response:", res.data);
-
-      const { token, user } = res.data;
-
-      if (!token || !user) {
-        setError("Invalid login response");
-        setLoading(false);
-        return;
-      }
-
-      localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(user));
-
-      const userId = user?._id || user?.id;
-      if (userId) localStorage.setItem("userId", userId);
-
-      console.log("👤 User role:", user.role);
-
-      setTimeout(() => {
-        if (user.role === "super_admin") {
-          window.location.href = "/super-admin-dashboard";
-        } else if (user.role === "admin" || user.role === "staff") {
-          window.location.href = "/dashboard";
-        } else if (user.role === "user") {
-          window.location.href = "/user-dashboard";
-        } else {
-          window.location.href = "/";
-        }
-      }, 100);
-
     } catch (err) {
-      console.error("❌ Login error:", err);
-      setError(err.response?.data?.message || "Login failed. Please try again.");
+      setError(err.response?.data?.message || "Invalid credentials");
     } finally {
       setLoading(false);
     }
   };
 
-  /* ── Auto-clear fields when switching tabs ── */
-  const switchTab = (type) => {
-    setUserType(type);
-    setEmail("");
-    setPassword("");
-    setError("");
-  };
+  const TABS = [
+    { id: "user", label: "User", icon: <FaUser size={13} /> },
+    { id: "store", label: "Store", icon: <FaStore size={13} /> },
+    { id: "delivery", label: "Delivery", icon: <FaMotorcycle size={13} /> },
+  ];
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-900 px-4">
-      <div className="w-full max-w-md bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-emerald-400">
+    <div style={{ fontFamily: "'DM Sans', sans-serif", minHeight: "100vh", background: "#f5f5f0", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+      <div style={{ width: "100%", maxWidth: 400 }}>
 
-        {/* Logo */}
-        <div className="flex items-center justify-center gap-3 mb-2">
-          <div className="bg-emerald-500 p-3 rounded-xl shadow-lg text-white">
-            <FaStore size={22} />
+        {/* LOGO */}
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <div style={{ width: 64, height: 64, borderRadius: 20, background: "linear-gradient(135deg,#1a9c3e,#0d5c24)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px", boxShadow: "0 8px 24px rgba(26,156,62,0.3)" }}>
+            <IoFlash color="#facc15" size={32} />
           </div>
-          <h1 className="text-3xl font-bold text-gray-800">SmartStore</h1>
-        </div>
-        <p className="text-center text-gray-500 mb-6">Secure login portal</p>
-
-        {/* USER TYPE TOGGLE */}
-        <div className="flex bg-gray-100 rounded-xl p-1 mb-6">
-          <button type="button" onClick={() => switchTab("normal")}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg font-medium text-sm transition ${
-              userType === "normal" ? "bg-emerald-500 text-white shadow-md" : "text-gray-600 hover:bg-gray-200"
-            }`}>
-            <FaUser /> User
-          </button>
-
-          <button type="button" onClick={() => switchTab("store")}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg font-medium text-sm transition ${
-              userType === "store" ? "bg-emerald-500 text-white shadow-md" : "text-gray-600 hover:bg-gray-200"
-            }`}>
-            <FaUsers /> Store
-          </button>
-
-          <button type="button" onClick={() => switchTab("delivery")}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg font-medium text-sm transition ${
-              userType === "delivery" ? "bg-orange-500 text-white shadow-md" : "text-gray-600 hover:bg-gray-200"
-            }`}>
-            <FaMotorcycle /> Delivery
-          </button>
+          <h1 style={{ fontWeight: 900, fontSize: 28, color: "#111", margin: 0 }}>SmartStore</h1>
+          <p style={{ color: "#6b7280", fontSize: 13, marginTop: 4 }}>10 minute delivery ⚡</p>
         </div>
 
-        {/* STORE ROLE TOGGLE */}
-        {userType === "store" && (
-          <div className="grid grid-cols-3 gap-3 mb-6">
-            {["super_admin", "admin", "staff"].map((r) => (
-              <button key={r} type="button" onClick={() => setRole(r)}
-                className={`py-2 rounded-xl text-sm font-semibold transition ${
-                  role === r ? "bg-emerald-500 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}>
-                {r.replace("_", " ").toUpperCase()}
+        {/* CARD */}
+        <div style={{ background: "white", borderRadius: 24, padding: 28, boxShadow: "0 4px 24px rgba(0,0,0,0.08)" }}>
+          <h2 style={{ fontWeight: 800, fontSize: 22, color: "#111", marginBottom: 4, marginTop: 0 }}>Welcome back 👋</h2>
+          <p style={{ color: "#9ca3af", fontSize: 13, marginBottom: 20, marginTop: 0 }}>Sign in to continue</p>
+
+          {/* TABS */}
+          <div style={{ display: "flex", background: "#f5f5f5", borderRadius: 12, padding: 4, marginBottom: 20, gap: 4 }}>
+            {TABS.map(t => (
+              <button key={t.id} onClick={() => { setTab(t.id); setError(""); setEmail(""); setPassword(""); setPhone(""); }}
+                style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px", borderRadius: 9, border: "none", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "'DM Sans', sans-serif", background: tab === t.id ? "white" : "transparent", color: tab === t.id ? "#1a9c3e" : "#6b7280", boxShadow: tab === t.id ? "0 2px 8px rgba(0,0,0,0.08)" : "none", transition: "all 0.2s" }}>
+                {t.icon} {t.label}
               </button>
             ))}
           </div>
-        )}
 
-        {/* DELIVERY INFO BANNER */}
-        {userType === "delivery" && (
-          <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 mb-4 text-sm text-orange-700">
-            🏍️ Login with your <strong>phone number</strong> and password set by your admin
-          </div>
-        )}
-
-        {error && (
-          <div className="bg-red-100 text-red-600 text-sm p-3 rounded-lg mb-4 text-center">
-            {error}
-          </div>
-        )}
-
-        {/* LOGIN FORM */}
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label className="text-sm text-gray-600">
-              {userType === "delivery" ? "Phone Number" : "Email"}
-            </label>
-            <input
-              type={userType === "delivery" ? "tel" : "email"}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder={userType === "delivery" ? "Enter your phone number" : "Enter your email"}
-              className="w-full mt-1 px-4 py-3 rounded-xl border focus:ring-2 focus:ring-emerald-400 outline-none"
-              required
-            />
-          </div>
-
-          <div className="relative">
-            <label className="text-sm text-gray-600">Password</label>
-            <input
-              type={showPassword ? "text" : "password"}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              className="w-full mt-1 px-4 py-3 rounded-xl border focus:ring-2 focus:ring-emerald-400 outline-none"
-              required
-            />
-            <span onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-10 cursor-pointer text-gray-500 hover:text-emerald-500">
-              {showPassword ? <FaEyeSlash /> : <FaEye />}
-            </span>
+          {/* FIELDS */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 16 }}>
+            {tab === "delivery" ? (
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: "#6b7280", display: "block", marginBottom: 6 }}>Phone Number</label>
+                <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="10 digit phone" type="tel"
+                  style={{ width: "100%", padding: "12px 14px", borderRadius: 12, border: "1.5px solid #e5e7eb", fontSize: 14, outline: "none", boxSizing: "border-box", fontFamily: "'DM Sans', sans-serif" }}
+                  onFocus={e => e.target.style.borderColor = "#1a9c3e"} onBlur={e => e.target.style.borderColor = "#e5e7eb"}
+                  onKeyDown={e => e.key === "Enter" && handleLogin()} />
+              </div>
+            ) : (
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: "#6b7280", display: "block", marginBottom: 6 }}>Email Address</label>
+                <input value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com" type="email"
+                  style={{ width: "100%", padding: "12px 14px", borderRadius: 12, border: "1.5px solid #e5e7eb", fontSize: 14, outline: "none", boxSizing: "border-box", fontFamily: "'DM Sans', sans-serif" }}
+                  onFocus={e => e.target.style.borderColor = "#1a9c3e"} onBlur={e => e.target.style.borderColor = "#e5e7eb"}
+                  onKeyDown={e => e.key === "Enter" && handleLogin()} />
+              </div>
+            )}
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 700, color: "#6b7280", display: "block", marginBottom: 6 }}>Password</label>
+              <div style={{ position: "relative" }}>
+                <input value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter password" type={showPass ? "text" : "password"}
+                  style={{ width: "100%", padding: "12px 44px 12px 14px", borderRadius: 12, border: "1.5px solid #e5e7eb", fontSize: 14, outline: "none", boxSizing: "border-box", fontFamily: "'DM Sans', sans-serif" }}
+                  onFocus={e => e.target.style.borderColor = "#1a9c3e"} onBlur={e => e.target.style.borderColor = "#e5e7eb"}
+                  onKeyDown={e => e.key === "Enter" && handleLogin()} />
+                <button onClick={() => setShowPass(!showPass)} style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#9ca3af" }}>
+                  {showPass ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
+                </button>
+              </div>
+            </div>
           </div>
 
-          <button type="submit" disabled={loading}
-            className={`w-full mt-2 disabled:opacity-60 text-white py-3 rounded-xl font-semibold text-lg shadow-lg transition ${
-              userType === "delivery"
-                ? "bg-orange-500 hover:bg-orange-600"
-                : "bg-emerald-500 hover:bg-emerald-600"
-            }`}>
-            {loading ? "Logging in..." : "Continue"}
-          </button>
-
-          {userType === "normal" && (
-            <div className="text-center mt-4">
-              <p className="text-sm text-gray-600">
-                Don't have an account?{" "}
-                <span onClick={() => navigate("/register")}
-                  className="text-emerald-600 font-semibold cursor-pointer hover:underline">
-                  Register
-                </span>
-              </p>
+          {error && (
+            <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: "10px 14px", marginBottom: 14, fontSize: 13, color: "#ef4444", fontWeight: 600 }}>
+              ⚠️ {error}
             </div>
           )}
-        </form>
 
-        {/* DEMO CREDENTIALS */}
-        <div className="mt-6 text-center text-xs text-gray-500 space-y-1">
-          <p className="font-semibold text-emerald-600">Demo Credentials:</p>
-          {userType === "delivery" ? (
-            <p>Use phone number + password set by admin</p>
-          ) : (
-            <>
-              <p>Super Admin: superadmin@example.com / SuperAdmin@123</p>
-              <p>Admin: admin@example.com / password123</p>
-              <p>Staff: staff@example.com / staff123</p>
-            </>
+          <button onClick={handleLogin} disabled={loading}
+            style={{ width: "100%", background: loading ? "#9ca3af" : "linear-gradient(135deg,#1a9c3e,#0d5c24)", color: "white", border: "none", borderRadius: 14, padding: "14px", fontSize: 16, fontWeight: 800, cursor: loading ? "not-allowed" : "pointer", fontFamily: "'DM Sans', sans-serif", boxShadow: "0 4px 16px rgba(26,156,62,0.3)", marginBottom: 16 }}>
+            {loading ? "Signing in..." : "Sign In →"}
+          </button>
+
+          {tab === "user" && (
+            <div style={{ textAlign: "center", fontSize: 13, color: "#6b7280" }}>
+              New to SmartStore?{" "}
+              <span onClick={() => navigate("/register")} style={{ color: "#1a9c3e", fontWeight: 700, cursor: "pointer" }}>Create Account</span>
+            </div>
           )}
         </div>
 
-        <p className="text-center text-xs text-gray-500 mt-6">
-          © 2026 SmartStore. All rights reserved.
-        </p>
+        <div style={{ marginTop: 20, background: "white", borderRadius: 14, padding: "12px 16px", display: "flex", alignItems: "center", gap: 10, boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
+          <div style={{ background: "#1a9c3e", borderRadius: "50%", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontSize: 14, flexShrink: 0, fontWeight: 700 }}>%</div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 12, color: "#1a9c3e" }}>50% upto ₹150 off on first order</div>
+            <div style={{ fontSize: 11, color: "#9ca3af" }}>USE TRY50 | Above ₹99</div>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
-
-export default Login;
