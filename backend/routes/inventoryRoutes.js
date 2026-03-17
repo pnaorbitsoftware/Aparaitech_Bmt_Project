@@ -12,11 +12,15 @@ const upload = require("../middleware/uploadMiddleware");
 ========================= */
 router.get("/public", async (req, res) => {
   try {
+
     const { category, storeId, featured } = req.query;
+
     let query = { is_active: 1 };
+
     if (category) query.category = category;
     if (storeId) query.storeId = storeId;
     if (featured === "true") query.is_featured = true;
+
     if (req.query.search) {
       query.name = { $regex: req.query.search, $options: "i" };
     }
@@ -27,7 +31,7 @@ router.get("/public", async (req, res) => {
       .limit(50);
 
     res.json(products.map(p => ({
-      id: p._id,
+      _id: p._id,
       name: p.name,
       category: p.category,
       price: Number(p.price),
@@ -35,20 +39,38 @@ router.get("/public", async (req, res) => {
       stock: Number(p.stock),
       is_featured: p.is_featured,
       storeId: p.storeId,
+
+      // ⭐ IMPORTANT
+      image: p.image || null
     })));
+
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch products" });
   }
 });
 
-router.post("/upload-image", authMiddleware, allowRoles(["admin","super_admin"]), upload.single("image"), (req, res) => {
-  if (!req.file) return res.status(400).json({ message: "No image" });
-  res.json({ success: true, imageUrl: `http://localhost:5000/uploads/${req.file.filename}` });
-});
 
 /* =========================
-   GET ALL ACTIVE PRODUCTS
-   (ADMIN + STAFF)
+   IMAGE UPLOAD
+========================= */
+router.post(
+  "/upload-image",
+  authMiddleware,
+  allowRoles(["admin","super_admin"]),
+  upload.single("image"),
+  (req, res) => {
+    if (!req.file) return res.status(400).json({ message: "No image" });
+
+    res.json({
+      success: true,
+      imageUrl: `http://localhost:5000/uploads/${req.file.filename}`
+    });
+  }
+);
+
+
+/* =========================
+   GET ALL PRODUCTS
 ========================= */
 router.get(
   "/",
@@ -56,6 +78,7 @@ router.get(
   allowRoles(["admin", "staff", "super_admin"]),
   inventoryController.getAllProducts
 );
+
 
 /* =========================
    GET SINGLE PRODUCT
@@ -67,18 +90,21 @@ router.get(
   inventoryController.getProductById
 );
 
+
 /* =========================
-   ADD PRODUCT (ADMIN)
+   ADD PRODUCT
 ========================= */
 router.post(
   "/",
   authMiddleware,
   allowRoles(["admin", "super_admin"]),
+  upload.single("image"),
   inventoryController.addProduct
 );
 
+
 /* =========================
-   UPDATE PRODUCT (ADMIN)
+   UPDATE PRODUCT
 ========================= */
 router.put(
   "/:id",
@@ -87,8 +113,9 @@ router.put(
   inventoryController.updateProduct
 );
 
+
 /* =========================
-   ARCHIVE PRODUCT (ADMIN)
+   ARCHIVE PRODUCT
 ========================= */
 router.delete(
   "/:id",

@@ -408,27 +408,34 @@ function ProductCard({ product }) {
 
   const addToCart = (e) => {
     e.stopPropagation();
-    
+
     try {
       const cart = JSON.parse(localStorage.getItem("cart") || "[]");
       const pid = product._id;
       const existing = cart.find(p => p._id === pid);
       const price = product.discount_price || product.price;
-      
+
       const newCart = existing
-        ? cart.map(p => p._id === pid ? { ...p, quantity: (p.quantity || 0) + 1 } : p)
-        : [...cart, { 
-            ...product, 
-            _id: pid, 
-            price, 
-            quantity: 1,
-            name: product.name,
-            image_url: product.image_url 
-          }];
-      
+        ? cart.map(p =>
+            p._id === pid ? { ...p, quantity: (p.quantity || 0) + 1 } : p
+          )
+        : [
+            ...cart,
+            {
+              ...product,
+              _id: pid,
+              price,
+              quantity: 1,
+              name: product.name,
+              image: product.image
+            }
+          ];
+
       localStorage.setItem("cart", JSON.stringify(newCart));
+
       window.dispatchEvent(new Event("cartUpdated"));
       setTimeout(() => window.dispatchEvent(new Event("openCartDrawer")), 100);
+
     } catch (error) {
       console.error("Error adding to cart:", error);
     }
@@ -439,53 +446,123 @@ function ProductCard({ product }) {
   };
 
   return (
-    <div 
+    <div
       onClick={() => navigate(`/product/${product._id}`)}
-      style={{ background: "white", borderRadius: 16, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.07)", cursor: "pointer" }}
+      style={{
+        background: "white",
+        borderRadius: 16,
+        overflow: "hidden",
+        boxShadow: "0 2px 12px rgba(0,0,0,0.07)",
+        cursor: "pointer"
+      }}
     >
-      <div style={{ position: "relative", height: 130, background: "#f9fafb", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        {product.image_url && !imageError ? (
-          <img 
-            src={product.image_url} 
-            alt={product.name} 
-            style={{ width: "100%", height: "100%", objectFit: "cover" }} 
-            loading="lazy"
+      <div
+        style={{
+          position: "relative",
+          height: 130,
+          background: "#f9fafb",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center"
+        }}
+      >
+        {/* PRODUCT IMAGE */}
+        {product.image && !imageError ? (
+         <img
+  src={`http://localhost:5000/uploads/${product.image}`}
+  alt={product.name}
+  style={{
+    width: "100%",
+    height: "120px",
+    objectFit: "contain",
+    padding: "8px",
+    background: "#f9fafb"
+  }}
+  loading="lazy"
             onError={handleImageError}
-          />
+/>
+           
         ) : (
           <span style={{ fontSize: 42 }}>📦</span>
         )}
-        
+
+        {/* FEATURED BADGE */}
         {product.is_featured === true && (
-          <span style={{ position: "absolute", top: 8, left: 8, background: "#1a9c3e", color: "white", fontSize: 9, fontWeight: 700, padding: "3px 8px", borderRadius: 20 }}>
+          <span
+            style={{
+              position: "absolute",
+              top: 8,
+              left: 8,
+              background: "#1a9c3e",
+              color: "white",
+              fontSize: 9,
+              fontWeight: 700,
+              padding: "3px 8px",
+              borderRadius: 20
+            }}
+          >
             ⭐ Bestseller
           </span>
         )}
-        
-        <button 
-          onClick={addToCart} 
-          style={{ 
-            position: "absolute", bottom: 8, right: 8, 
-            background: "#1a9c3e", color: "white", border: "none", 
-            borderRadius: 10, width: 34, height: 34, fontSize: 20, 
-            cursor: "pointer", display: "flex", alignItems: "center", 
-            justifyContent: "center", fontWeight: 700, 
+
+        {/* ADD BUTTON */}
+        <button
+          onClick={addToCart}
+          style={{
+            position: "absolute",
+            bottom: 8,
+            right: 8,
+            background: "#1a9c3e",
+            color: "white",
+            border: "none",
+            borderRadius: 10,
+            width: 34,
+            height: 34,
+            fontSize: 20,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontWeight: 700,
             boxShadow: "0 2px 8px rgba(26,156,62,0.4)"
           }}
-          aria-label="Add to cart"
         >
           +
         </button>
       </div>
-      
+
+      {/* PRODUCT INFO */}
       <div style={{ padding: "10px 12px" }}>
-        <div style={{ fontWeight: 700, fontSize: 13, color: "#111827", marginBottom: 2 }}>{product.name}</div>
+        <div
+          style={{
+            fontWeight: 700,
+            fontSize: 13,
+            color: "#111827",
+            marginBottom: 2
+          }}
+        >
+          {product.name}
+        </div>
+
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ fontWeight: 800, fontSize: 14, color: "#111827" }}>
+          <span
+            style={{
+              fontWeight: 800,
+              fontSize: 14,
+              color: "#111827"
+            }}
+          >
             ₹{product.discount_price || product.price}
           </span>
+
           {product.discount_price && (
-            <span style={{ fontSize: 11, color: "#9ca3af", textDecoration: "line-through" }}>
+            <span
+              style={{
+                fontSize: 11,
+                color: "#9ca3af",
+                textDecoration: "line-through"
+              }}
+            >
               ₹{product.price}
             </span>
           )}

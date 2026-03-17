@@ -225,6 +225,7 @@ function Inventory() {
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-slate-500 text-xs uppercase">
               <tr>
+                <th className="p-4 text-left">Image</th>
                 <th className="p-4 text-left">Product</th>
                 <th className="p-4 text-left">Category</th>
                 <th className="p-4 text-right">Price</th>
@@ -238,14 +239,38 @@ function Inventory() {
             </thead>
             <tbody>
               {filtered.map(p => (
-                <tr key={p.id} className={`border-t hover:bg-slate-50 transition ${p.isLowStock ? "bg-red-50/50" : ""}`}>
-                  <td className="p-4">
-                    <div className="font-semibold text-slate-800 flex items-center gap-2">
-                      {p.name}
-                      {p.isLowStock && <AlertTriangle className="w-3.5 h-3.5 text-red-500" title="Low stock" />}
-                    </div>
-                    <div className="text-xs text-slate-400">{p.sku}</div>
-                  </td>
+                
+                 <tr key={p.id} className={`border-t hover:bg-slate-50 transition ${p.isLowStock ? "bg-red-50/50" : ""}`}>
+
+{/* IMAGE */}
+<td className="p-4">
+  {p.image ? (
+  <img
+    src={`http://localhost:5000/uploads/${p.image}`}
+    className="w-12 h-12 object-cover rounded-lg border"
+  />
+) : p.image_url ? (
+  <img
+    src={p.image_url}
+    className="w-12 h-12 object-cover rounded-lg border"
+  />
+) : (
+  <div className="w-12 h-12 flex items-center justify-center bg-slate-100 rounded-lg text-xl">
+    📦
+  </div>
+)}
+</td>
+
+{/* PRODUCT */}
+<td className="p-4">
+  <div className="font-semibold text-slate-800 flex items-center gap-2">
+    {p.name}
+    {p.isLowStock && (
+      <AlertTriangle className="w-3.5 h-3.5 text-red-500" title="Low stock" />
+    )}
+  </div>
+  <div className="text-xs text-slate-400">{p.sku}</div>
+</td>
                   <td className="p-4">
                     <span className="bg-slate-100 text-slate-600 text-xs px-2.5 py-1 rounded-full font-medium">{p.category}</span>
                   </td>
