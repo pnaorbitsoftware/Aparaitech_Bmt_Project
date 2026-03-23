@@ -62,8 +62,14 @@ const productSchema = new mongoose.Schema({
     default: false
   },
 
-  /* ⭐ Product Image */
+  /* legacy field — filename only (e.g. product_123.jpg) */
   image: {
+    type: String,
+    default: null
+  },
+
+  /* ⭐ new field — full URL (pasted by admin) */
+  image_url: {
     type: String,
     default: null
   },

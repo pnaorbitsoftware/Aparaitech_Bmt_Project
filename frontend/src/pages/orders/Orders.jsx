@@ -14,6 +14,15 @@ const STATUS_COLORS = {
   Cancelled:            "bg-red-100 text-red-700",
 };
 
+// Helper: safely format address object or string
+const formatAddress = (address) => {
+  if (!address) return "";
+  if (typeof address === "string") return address;
+  return [address.name, address.street, address.city, address.state, address.pincode]
+    .filter(v => v && typeof v === "string")
+    .join(", ");
+};
+
 export default function Orders() {
   const [orders, setOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -54,7 +63,6 @@ export default function Orders() {
 
   const filtered = filterStatus === "All" ? orders : orders.filter(o => o.status === filterStatus);
 
-  // Stats
   const stats = STATUS_OPTIONS.reduce((acc, s) => {
     acc[s] = orders.filter(o => o.status === s).length;
     return acc;
@@ -126,9 +134,9 @@ export default function Orders() {
                   <td className="px-4 py-3 font-bold text-slate-800">₹{order.totalAmount}</td>
                   <td className="px-4 py-3 text-xs text-slate-400">{formatDate(order.createdAt)}</td>
                   <td className="px-4 py-3">
-                  <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${STATUS_COLORS[order.status] || "bg-slate-100 text-slate-600"}`}>
-                    {order.status}
-                  </span>
+                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${STATUS_COLORS[order.status] || "bg-slate-100 text-slate-600"}`}>
+                      {order.status}
+                    </span>
                   </td>
                   <td className="px-4 py-3">
                     <button onClick={() => setSelectedOrder(order)}
@@ -164,6 +172,7 @@ export default function Orders() {
                 <div className="flex flex-wrap gap-2">
                   {STATUS_OPTIONS.map(s => (
                     <button key={s} onClick={() => updateStatus(selectedOrder._id, s)}
+                      disabled={updatingId === selectedOrder._id}
                       className={`text-xs px-3 py-1.5 rounded-full font-semibold border transition ${
                         selectedOrder.status === s
                           ? STATUS_COLORS[s] + " border-transparent"
@@ -195,18 +204,16 @@ export default function Orders() {
                 </div>
               </div>
 
-              {/* Address */}
+              {/* Address — safe rendering */}
               {selectedOrder.address && (
                 <div>
                   <h3 className="font-semibold text-slate-700 mb-2 flex items-center gap-1">
                     <MapPin className="w-4 h-4" /> Delivery Address
                   </h3>
                   <p className="text-sm text-slate-500">
-                    {[selectedOrder.address.name, selectedOrder.address.street,
-                      selectedOrder.address.city, selectedOrder.address.state,
-                      selectedOrder.address.pincode].filter(Boolean).join(", ")}
+                    {formatAddress(selectedOrder.address)}
                   </p>
-                  {selectedOrder.address.phone && (
+                  {selectedOrder.address?.phone && typeof selectedOrder.address.phone === "string" && (
                     <p className="text-sm text-slate-500">📞 {selectedOrder.address.phone}</p>
                   )}
                 </div>

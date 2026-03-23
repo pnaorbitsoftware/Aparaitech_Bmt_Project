@@ -6,7 +6,7 @@ import { FaArrowLeft, FaStar, FaFire } from "react-icons/fa";
 const PUBLIC = axios.create({ baseURL: "http://localhost:5000/api" });
 
 export default function ProductDetail() {
-  const { id } = useParams();
+  const { productId } = useParams();
   const navigate = useNavigate();
   const [product, setProduct] = useState(null);
   const [related, setRelated] = useState([]);
@@ -18,18 +18,19 @@ export default function ProductDetail() {
     const fetchProduct = async () => {
       try {
         setLoading(true);
-        const res = await PUBLIC.get(`/inventory/public`);
-        const all = Array.isArray(res.data) ? res.data : [];
-        const found = all.find(p => p._id === id);
-        setProduct(found);
-        if (found) {
-          setRelated(all.filter(p => p._id !== id && p.category === found.category).slice(0, 6));
+        const res = await PUBLIC.get(`/inventory/public/${productId}`);
+        setProduct(res.data);
+  
+        if (res.data?.category) {
+          const allRes = await PUBLIC.get(`/inventory/public?category=${res.data.category}`);
+          const all = Array.isArray(allRes.data) ? allRes.data : allRes.data?.data || [];
+          setRelated(all.filter(p => p._id !== productId).slice(0, 6));
         }
       } catch (e) { console.error(e); }
       finally { setLoading(false); }
     };
     fetchProduct();
-  }, [id]);
+  }, [productId]);
 
   const updateCart = (newCart) => {
     setCart(newCart);
@@ -50,7 +51,7 @@ export default function ProductDetail() {
     updateCart(cart.map(c => c._id === p._id ? { ...c, quantity: c.quantity - 1 } : c).filter(c => c.quantity > 0));
   };
 
-  const getQty = (id) => cart.find(c => c._id === id)?.quantity || 0;
+  const getQty = (pid) => cart.find(c => c._id === pid)?.quantity || 0;
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
   const cartTotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
 

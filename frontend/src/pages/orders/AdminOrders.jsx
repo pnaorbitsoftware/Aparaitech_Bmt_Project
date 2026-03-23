@@ -11,6 +11,15 @@ const STATUS_COLORS = {
   Cancelled:          "bg-red-100 text-red-700",
 };
 
+// Helper: safely format address object or string
+const formatAddress = (address) => {
+  if (!address) return "";
+  if (typeof address === "string") return address;
+  return [address.street, address.city, address.state, address.pincode]
+    .filter(v => v && typeof v === "string")
+    .join(", ");
+};
+
 export default function AdminOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -145,7 +154,11 @@ export default function AdminOrders() {
                   </td>
                   <td className="px-4 py-3">
                     <p className="font-semibold text-slate-800">{order.userId?.name || "—"}</p>
-                    <p className="text-xs text-slate-400">{order.address?.phone || ""}</p>
+                    <p className="text-xs text-slate-400">
+                      {order.address && typeof order.address === "object"
+                        ? order.address.phone || ""
+                        : ""}
+                    </p>
                   </td>
                   <td className="px-4 py-3 text-slate-600">
                     {order.items?.length} item{order.items?.length > 1 ? "s" : ""}
@@ -255,18 +268,17 @@ export default function AdminOrders() {
                 )}
               </div>
 
-              {/* Customer & Address */}
+              {/* Customer & Address — safe rendering */}
               <div>
                 <p className="text-xs font-semibold text-slate-500 mb-2">Customer</p>
                 <p className="font-semibold text-slate-800">{selectedOrder.userId?.name || "—"}</p>
                 {selectedOrder.address && (
                   <p className="text-sm text-slate-500 flex items-start gap-1 mt-1">
                     <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0 text-slate-400" />
-                    {[selectedOrder.address.street, selectedOrder.address.city,
-                      selectedOrder.address.state, selectedOrder.address.pincode].filter(Boolean).join(", ")}
+                    {formatAddress(selectedOrder.address)}
                   </p>
                 )}
-                {selectedOrder.address?.phone && (
+                {selectedOrder.address?.phone && typeof selectedOrder.address.phone === "string" && (
                   <p className="text-sm text-slate-500 mt-1">📞 {selectedOrder.address.phone}</p>
                 )}
               </div>

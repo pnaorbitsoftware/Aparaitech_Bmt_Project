@@ -9,11 +9,10 @@ const bcrypt = require("bcryptjs");
 // @desc  Get all delivery partners
 // @route GET /api/delivery-partners
 router.get("/", verifyToken, allowRole(["super_admin", "admin"]), async (req, res) => {
+  const partners = await DeliveryPartner.find().sort({ createdAt: -1 });
+  res.json({ success: true, count: partners.length, data: partners });
   try {
-    const partners = await DeliveryPartner.find().sort({ createdAt: -1 });
-    res.json({ success: true, count: partners.length, data: partners });
   } catch (err) {
-    console.error("GET DELIVERY PARTNERS ERROR:", err);
     res.status(500).json({ success: false, message: "Failed to fetch delivery partners" });
   }
 });
@@ -23,20 +22,16 @@ router.get("/", verifyToken, allowRole(["super_admin", "admin"]), async (req, re
 router.post("/", verifyToken, allowRole(["super_admin"]), async (req, res) => {
   try {
     const { name, phone, email, vehicleType, vehicleNumber } = req.body;
-
-    if (!name || !phone) {
+    if (!name || !phone)
       return res.status(400).json({ success: false, message: "Name and phone are required" });
-    }
 
     const partner = await DeliveryPartner.create({
       name, phone, email, vehicleType, vehicleNumber,
       createdBy: req.user.id,
       isActive: true,
     });
-
     res.status(201).json({ success: true, message: "Delivery partner created", data: partner });
   } catch (err) {
-    console.error("CREATE DELIVERY PARTNER ERROR:", err);
     res.status(500).json({ success: false, message: "Failed to create delivery partner" });
   }
 });
@@ -51,8 +46,7 @@ router.put("/:id", verifyToken, allowRole(["super_admin"]), async (req, res) => 
     if (!partner) return res.status(404).json({ success: false, message: "Partner not found" });
     res.json({ success: true, message: "Partner updated", data: partner });
   } catch (err) {
-    console.error("UPDATE DELIVERY PARTNER ERROR:", err);
-    res.status(500).json({ success: false, message: "Failed to update delivery partner" });
+    res.status(500).json({ success: false, message: "Failed to update partner" });
   }
 });
 
@@ -64,13 +58,11 @@ router.delete("/:id", verifyToken, allowRole(["super_admin"]), async (req, res) 
     if (!partner) return res.status(404).json({ success: false, message: "Partner not found" });
     res.json({ success: true, message: "Partner deleted" });
   } catch (err) {
-    console.error("DELETE DELIVERY PARTNER ERROR:", err);
-    res.status(500).json({ success: false, message: "Failed to delete delivery partner" });
+    res.status(500).json({ success: false, message: "Failed to delete partner" });
   }
 });
 
 // ─── DELIVERY PARTNER LOGIN ───────────────────────────────
-// POST /api/delivery-partners/login
 router.post("/login", async (req, res) => {
   try {
     const { phone, password } = req.body;
@@ -110,25 +102,20 @@ router.post("/login", async (req, res) => {
       }
     });
   } catch (err) {
-    console.error("DELIVERY LOGIN ERROR:", err);
     res.status(500).json({ success: false, message: "Login failed" });
   }
 });
 
-// ─── SET / RESET PASSWORD (super_admin only) ─────────────
-// PUT /api/delivery-partners/:id/set-password
+// ─── SET / RESET PASSWORD ────────────────────────────────
 router.put("/:id/set-password", verifyToken, allowRole(["super_admin"]), async (req, res) => {
   try {
     const { password } = req.body;
     if (!password || password.length < 4)
       return res.status(400).json({ success: false, message: "Password must be at least 4 characters" });
 
-    const bcrypt = require("bcryptjs");
     const hashed = await bcrypt.hash(password, 10);
     const partner = await DeliveryPartner.findByIdAndUpdate(
-      req.params.id,
-      { password: hashed },
-      { new: true }
+      req.params.id, { password: hashed }, { new: true }
     );
     if (!partner) return res.status(404).json({ success: false, message: "Partner not found" });
     res.json({ success: true, message: "Password set successfully" });
@@ -137,8 +124,7 @@ router.put("/:id/set-password", verifyToken, allowRole(["super_admin"]), async (
   }
 });
 
-// ─── GET MY ASSIGNED ORDERS (delivery partner) ───────────
-// GET /api/delivery-partners/my-orders
+// ─── GET MY ASSIGNED ORDERS ──────────────────────────────
 router.get("/my-orders", verifyToken, async (req, res) => {
   try {
     const Order = require("../models/Order");
@@ -151,34 +137,69 @@ router.get("/my-orders", verifyToken, async (req, res) => {
   }
 });
 
-// ─── UPDATE ORDER STATUS (delivery partner) ──────────────
-// PUT /api/delivery-partners/order/:orderId/status
+// ─── UPDATE ORDER STATUS ─────────────────────────────────
 router.put("/order/:orderId/status", verifyToken, async (req, res) => {
   try {
     const Order = require("../models/Order");
     const { status } = req.body;
     const allowed = ["Out for Delivery", "Delivered"];
     if (!allowed.includes(status))
-      return res.status(400).json({ success: false, message: "Invalid status for delivery partner" });
+      return res.status(400).json({ success: false, message: "Invalid status" });
 
     const order = await Order.findByIdAndUpdate(
-      req.params.orderId,
-      { status },
-      { new: true }
+      req.params.orderId, { status }, { new: true }
     );
     if (!order) return res.status(404).json({ success: false, message: "Order not found" });
 
-    // If delivered, mark partner as available again
     if (status === "Delivered") {
       await DeliveryPartner.findByIdAndUpdate(req.user.id, {
         isAvailable: true,
-        currentOrderId: null
+        currentOrderId: null,
+        location: null, // clear location on delivery
       });
     }
 
     res.json({ success: true, order });
   } catch (err) {
     res.status(500).json({ success: false, message: "Failed to update status" });
+  }
+});
+
+// ─── UPDATE LIVE LOCATION (delivery partner pushes GPS) ──
+// PUT /api/delivery-partners/location
+// Body: { lat, lng }
+router.put("/location", verifyToken, async (req, res) => {
+  try {
+    const { lat, lng } = req.body;
+    if (!lat || !lng)
+      return res.status(400).json({ success: false, message: "lat and lng required" });
+
+    await DeliveryPartner.findByIdAndUpdate(req.user.id, {
+      location: { lat: Number(lat), lng: Number(lng), updatedAt: new Date() }
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Failed to update location" });
+  }
+});
+
+// ─── GET DELIVERY PARTNER LOCATION (user polls this) ─────
+// GET /api/delivery-partners/:id/location
+// No auth needed so user can poll it
+router.get("/:id/location", async (req, res) => {
+  try {
+    const partner = await DeliveryPartner.findById(req.params.id).select("location name vehicleType");
+    if (!partner) return res.status(404).json({ success: false, message: "Partner not found" });
+
+    res.json({
+      success: true,
+      location: partner.location || null,
+      name: partner.name,
+      vehicleType: partner.vehicleType,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Failed to get location" });
   }
 });
 

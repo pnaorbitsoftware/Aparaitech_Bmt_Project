@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { API } from "../../services/api";
 import { useNavigate } from "react-router-dom";
-import { FaArrowLeft, FaChevronRight, FaMapMarkerAlt, FaTimes } from "react-icons/fa";
+import { FaArrowLeft, FaChevronRight, FaMapMarkerAlt, FaTimes, FaMotorcycle } from "react-icons/fa";
 
 const STATUS_CONFIG = {
   Placed:             { color: "#3b82f6", bg: "#eff6ff", icon: "🕐", label: "Order Placed" },
@@ -13,6 +13,168 @@ const STATUS_CONFIG = {
 };
 
 const STEPS = ["Placed", "Confirmed", "Preparing", "Out for Delivery", "Delivered"];
+
+const formatAddress = (address) => {
+  if (!address) return "";
+  if (typeof address === "string") return address;
+  return [address.street, address.city, address.state, address.pincode]
+    .filter(v => v && typeof v === "string").join(", ");
+};
+
+// ── Live Map Component using OpenStreetMap (no API key needed) ──
+function LiveTrackingMap({ deliveryPartnerId, deliveryPartnerName }) {
+  const mapRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const markerRef = useRef(null);
+  const [location, setLocation] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [mapError, setMapError] = useState(false);
+  const pollRef = useRef(null);
+
+  // Load Leaflet dynamically
+  useEffect(() => {
+    if (!deliveryPartnerId) return;
+
+    // Inject Leaflet CSS
+    if (!document.getElementById("leaflet-css")) {
+      const link = document.createElement("link");
+      link.id = "leaflet-css";
+      link.rel = "stylesheet";
+      link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+      document.head.appendChild(link);
+    }
+
+    // Load Leaflet JS
+    const loadLeaflet = () => {
+      return new Promise((resolve) => {
+        if (window.L) { resolve(); return; }
+        const script = document.createElement("script");
+        script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+        script.onload = resolve;
+        document.head.appendChild(script);
+      });
+    };
+
+    const init = async () => {
+      await loadLeaflet();
+      if (!mapRef.current || mapInstanceRef.current) return;
+      try {
+        const map = window.L.map(mapRef.current, { zoomControl: true, attributionControl: false });
+        window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+        mapInstanceRef.current = map;
+      } catch (e) {
+        setMapError(true);
+      }
+    };
+
+    init();
+    startPolling();
+
+    return () => {
+      stopPolling();
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+        markerRef.current = null;
+      }
+    };
+  }, [deliveryPartnerId]);
+
+  // Update marker when location changes
+  useEffect(() => {
+    if (!location || !mapInstanceRef.current || !window.L) return;
+    const { lat, lng } = location;
+
+    const bikeIcon = window.L.divIcon({
+      className: "",
+      html: `<div style="
+        background: #8b5cf6;
+        border: 3px solid white;
+        border-radius: 50%;
+        width: 42px;
+        height: 42px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        box-shadow: 0 4px 12px rgba(139,92,246,0.5);
+      ">🛵</div>`,
+      iconSize: [42, 42],
+      iconAnchor: [21, 21],
+    });
+
+    if (markerRef.current) {
+      markerRef.current.setLatLng([lat, lng]);
+    } else {
+      markerRef.current = window.L.marker([lat, lng], { icon: bikeIcon })
+        .addTo(mapInstanceRef.current)
+        .bindPopup(`<b>${deliveryPartnerName || "Delivery Partner"}</b><br>On the way!`);
+    }
+
+    mapInstanceRef.current.setView([lat, lng], 15, { animate: true });
+  }, [location]);
+
+  const startPolling = () => {
+    pollRef.current = setInterval(fetchLocation, 10000);
+    fetchLocation(); // fetch immediately
+  };
+
+  const stopPolling = () => {
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  };
+
+  const fetchLocation = async () => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/delivery-partners/${deliveryPartnerId}/location`);
+      const data = await res.json();
+      if (data.location?.lat && data.location?.lng) {
+        setLocation(data.location);
+        setLastUpdated(new Date());
+      }
+    } catch (err) {
+      console.error("Location fetch failed:", err);
+    }
+  };
+
+  if (mapError) return (
+    <div style={{ background: "#f5f3ff", borderRadius: 16, padding: 20, textAlign: "center", color: "#8b5cf6" }}>
+      <div style={{ fontSize: 32, marginBottom: 8 }}>🛵</div>
+      <div style={{ fontWeight: 700, fontSize: 14 }}>Partner is on the way!</div>
+      <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 4 }}>Map unavailable</div>
+    </div>
+  );
+
+  return (
+    <div style={{ borderRadius: 16, overflow: "hidden", border: "2px solid #e5e7eb" }}>
+      {/* Map */}
+      <div ref={mapRef} style={{ height: 220, width: "100%", background: "#e8e8e8" }} />
+
+      {/* Status bar below map */}
+      <div style={{ background: "white", padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ width: 34, height: 34, background: "#f5f3ff", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🛵</div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 13, color: "#111" }}>{deliveryPartnerName || "Delivery Partner"}</div>
+            <div style={{ fontSize: 11, color: "#9ca3af" }}>
+              {location
+                ? lastUpdated ? `Updated ${Math.round((new Date() - lastUpdated) / 1000)}s ago` : "Location received"
+                : "Waiting for location..."}
+            </div>
+          </div>
+        </div>
+        {location && (
+          <div style={{ display: "flex", alignItems: "center", gap: 4, background: "#f0fdf4", borderRadius: 20, padding: "4px 10px" }}>
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#1a9c3e", display: "inline-block", animation: "livePulse 1.5s infinite" }} />
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#1a9c3e" }}>Live</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function MyOrders() {
   const [orders, setOrders] = useState([]);
@@ -34,6 +196,11 @@ export default function MyOrders() {
       const res = await API.get(`/orders/user/${userId}`);
       const data = Array.isArray(res.data) ? res.data : res.data?.orders || [];
       setOrders(data);
+      // Refresh selected order if open
+      if (selected) {
+        const updated = data.find(o => o._id === selected._id);
+        if (updated) setSelected(updated);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -50,7 +217,11 @@ export default function MyOrders() {
   return (
     <div style={{ fontFamily: "'DM Sans', sans-serif", background: "#f5f5f0", minHeight: "100vh", paddingBottom: 40 }}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}`}</style>
+      <style>{`
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+        @keyframes livePulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.6;transform:scale(1.3)} }
+        @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+      `}</style>
 
       {/* HEADER */}
       <div style={{ background: "white", padding: "16px 20px", display: "flex", alignItems: "center", gap: 12, borderBottom: "1px solid #f0f0f0", position: "sticky", top: 0, zIndex: 40 }}>
@@ -61,7 +232,7 @@ export default function MyOrders() {
       </div>
 
       <div style={{ maxWidth: 600, margin: "0 auto", padding: "16px" }}>
-        {loading ? (
+        {loading && orders.length === 0 ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {[1,2,3].map(i => (
               <div key={i} style={{ background: "white", borderRadius: 16, padding: 20, height: 100, animation: "pulse 1.5s infinite" }} />
@@ -82,10 +253,19 @@ export default function MyOrders() {
               const cfg = STATUS_CONFIG[order.status] || STATUS_CONFIG.Placed;
               return (
                 <div key={order._id} onClick={() => setSelected(order)}
-                  style={{ background: "white", borderRadius: 16, padding: 16, boxShadow: "0 2px 12px rgba(0,0,0,0.06)", cursor: "pointer" }}>
+                  style={{ background: "white", borderRadius: 16, padding: 16, boxShadow: "0 2px 12px rgba(0,0,0,0.06)", cursor: "pointer", border: order.status === "Out for Delivery" ? "2px solid #8b5cf6" : "2px solid transparent" }}>
+
+                  {/* Live badge for out for delivery */}
+                  {order.status === "Out for Delivery" && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10, background: "#f5f3ff", borderRadius: 20, padding: "4px 10px", width: "fit-content" }}>
+                      <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#8b5cf6", display: "inline-block", animation: "livePulse 1.5s infinite" }} />
+                      <span style={{ fontSize: 11, fontWeight: 700, color: "#8b5cf6" }}>LIVE TRACKING</span>
+                    </div>
+                  )}
+
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div style={{ width: 44, height: 44, borderRadius: 12, background: cfg.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>
+                      <div style={{ width: 44, height: 44, borderRadius: 12, background: cfg.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, animation: order.status === "Out for Delivery" ? "bounce 1.5s infinite" : "none" }}>
                         {cfg.icon}
                       </div>
                       <div>
@@ -117,7 +297,7 @@ export default function MyOrders() {
       {selected && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center" }}
           onClick={(e) => e.target === e.currentTarget && setSelected(null)}>
-          <div style={{ background: "white", borderRadius: "24px 24px 0 0", width: "100%", maxWidth: 600, maxHeight: "90vh", overflowY: "auto" }}>
+          <div style={{ background: "white", borderRadius: "24px 24px 0 0", width: "100%", maxWidth: 600, maxHeight: "92vh", overflowY: "auto" }}>
             <div style={{ display: "flex", justifyContent: "center", paddingTop: 12 }}>
               <div style={{ width: 40, height: 4, borderRadius: 2, background: "#e5e7eb" }} />
             </div>
@@ -129,23 +309,60 @@ export default function MyOrders() {
             </div>
 
             <div style={{ padding: "20px" }}>
+
+              {/* ── LIVE TRACKING MAP (only when out for delivery) ── */}
+              {selected.status === "Out for Delivery" && selected.deliveryPartnerId && (
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#8b5cf6", animation: "livePulse 1.5s infinite" }} />
+                    <span style={{ fontWeight: 800, fontSize: 15, color: "#8b5cf6" }}>Live Tracking</span>
+                    <span style={{ fontSize: 11, color: "#9ca3af", marginLeft: "auto" }}>Updates every 10s</span>
+                  </div>
+                  <LiveTrackingMap
+                    deliveryPartnerId={selected.deliveryPartnerId?._id || selected.deliveryPartnerId}
+                    deliveryPartnerName={selected.deliveryPartnerId?.name}
+                  />
+                </div>
+              )}
+
+              {/* Delivery partner info card (when out for delivery) */}
+              {selected.status === "Out for Delivery" && selected.deliveryPartnerId && (
+                <div style={{ background: "#f5f3ff", borderRadius: 14, padding: 14, marginBottom: 20, display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ width: 44, height: 44, background: "#8b5cf6", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>🏍️</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: "#111" }}>{selected.deliveryPartnerId?.name || "Delivery Partner"}</div>
+                    <div style={{ fontSize: 12, color: "#6b7280" }}>{selected.deliveryPartnerId?.vehicleType} • {selected.deliveryPartnerId?.phone}</div>
+                  </div>
+                  <div style={{ background: "#8b5cf6", borderRadius: 20, padding: "4px 12px" }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "white" }}>On the way</span>
+                  </div>
+                </div>
+              )}
+
               {/* STATUS TRACKER */}
               {selected.status !== "Cancelled" ? (
                 <div style={{ background: "#f9fafb", borderRadius: 16, padding: 16, marginBottom: 20 }}>
                   <div style={{ fontWeight: 700, fontSize: 14, color: "#111", marginBottom: 16 }}>Order Tracking</div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                    {STEPS.map((step, i) => {
-                      const done = i <= getStepIndex(selected.status);
-                      const active = i === getStepIndex(selected.status);
-                      return (
-                        <div key={step} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                          <div style={{ width: 28, height: 28, borderRadius: "50%", background: done ? "#1a9c3e" : "white", border: `2px solid ${done ? "#1a9c3e" : "#e5e7eb"}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: active ? "0 0 0 4px rgba(26,156,62,0.15)" : "none" }}>
-                            {done ? <span style={{ color: "white", fontSize: 11 }}>✓</span> : <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#e5e7eb", display: "block" }} />}
+                  <div style={{ position: "relative" }}>
+                    {/* Vertical line */}
+                    <div style={{ position: "absolute", left: 13, top: 14, bottom: 14, width: 2, background: "#e5e7eb", zIndex: 0 }} />
+                    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                      {STEPS.map((step, i) => {
+                        const done = i <= getStepIndex(selected.status);
+                        const active = i === getStepIndex(selected.status);
+                        return (
+                          <div key={step} style={{ display: "flex", alignItems: "center", gap: 14, position: "relative", zIndex: 1 }}>
+                            <div style={{ width: 28, height: 28, borderRadius: "50%", background: done ? "#1a9c3e" : "white", border: `2px solid ${done ? "#1a9c3e" : "#e5e7eb"}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: active ? "0 0 0 5px rgba(26,156,62,0.15)" : "none", transition: "all 0.3s" }}>
+                              {done ? <span style={{ color: "white", fontSize: 12, fontWeight: 700 }}>✓</span> : <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#e5e7eb", display: "block" }} />}
+                            </div>
+                            <div>
+                              <span style={{ fontWeight: active ? 800 : done ? 600 : 400, fontSize: 13, color: active ? "#1a9c3e" : done ? "#111" : "#9ca3af" }}>{step}</span>
+                              {active && <div style={{ fontSize: 11, color: "#1a9c3e", marginTop: 1 }}>Current status</div>}
+                            </div>
                           </div>
-                          <span style={{ fontWeight: active ? 700 : done ? 600 : 400, fontSize: 13, color: active ? "#1a9c3e" : done ? "#111" : "#9ca3af" }}>{step}</span>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -182,9 +399,13 @@ export default function MyOrders() {
                     <FaMapMarkerAlt color="#1a9c3e" size={14} /> Delivery Address
                   </div>
                   <div style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.7 }}>
-                    {selected.address.name && <div style={{ fontWeight: 600, color: "#374151" }}>{selected.address.name}</div>}
-                    <div>{[selected.address.street, selected.address.city, selected.address.state, selected.address.pincode].filter(Boolean).join(", ")}</div>
-                    {selected.address.phone && <div>📞 {selected.address.phone}</div>}
+                    {selected.address.name && typeof selected.address.name === "string" && (
+                      <div style={{ fontWeight: 600, color: "#374151" }}>{selected.address.name}</div>
+                    )}
+                    <div>{formatAddress(selected.address)}</div>
+                    {selected.address.phone && typeof selected.address.phone === "string" && (
+                      <div>📞 {selected.address.phone}</div>
+                    )}
                   </div>
                 </div>
               )}

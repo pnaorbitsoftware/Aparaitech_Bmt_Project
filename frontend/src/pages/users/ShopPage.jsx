@@ -5,6 +5,15 @@ import { FaArrowLeft, FaSearch, FaMapMarkerAlt, FaPhone } from "react-icons/fa";
 
 const PUBLIC = axios.create({ baseURL: "http://localhost:5000/api" });
 
+// Helper: safely format address object or string
+const formatAddress = (address) => {
+  if (!address) return "";
+  if (typeof address === "string") return address;
+  return [address.street, address.city, address.state, address.pincode]
+    .filter(v => v && typeof v === "string")
+    .join(", ");
+};
+
 export default function ShopPage() {
   const { storeId } = useParams();
   const navigate = useNavigate();
@@ -97,8 +106,19 @@ export default function ShopPage() {
               <span key={i} style={{ background: "rgba(255,255,255,0.2)", color: "white", fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 20 }}>{c}</span>
             ))}
           </div>
-          {store?.address && <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 6, color: "rgba(255,255,255,0.8)", fontSize: 12 }}><FaMapMarkerAlt size={10} /><span>{store.address}</span></div>}
-          {store?.phone && <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 3, color: "rgba(255,255,255,0.8)", fontSize: 12 }}><FaPhone size={10} /><span>{store.phone}</span></div>}
+          {/* FIX: store.address is an object — use formatAddress() */}
+          {store?.address && (
+            <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 6, color: "rgba(255,255,255,0.8)", fontSize: 12 }}>
+              <FaMapMarkerAlt size={10} />
+              <span>{formatAddress(store.address)}</span>
+            </div>
+          )}
+          {store?.phone && (
+            <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 3, color: "rgba(255,255,255,0.8)", fontSize: 12 }}>
+              <FaPhone size={10} />
+              <span>{store.phone}</span>
+            </div>
+          )}
         </div>
       </div>
 
