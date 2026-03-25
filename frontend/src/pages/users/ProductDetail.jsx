@@ -82,7 +82,6 @@ export default function ProductDetail() {
     : 0;
 
   // Debug: Log the image URL
-  console.log("Product image URL:", product.image_url);
 
   return (
     <div style={{ fontFamily: "'DM Sans', sans-serif", background: "#f5f5f0", minHeight: "100vh", paddingBottom: 100 }}>

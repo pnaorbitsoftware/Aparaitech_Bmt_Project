@@ -1,4 +1,5 @@
 import { Routes, Route } from "react-router-dom";
+import { Navigate } from "react-router-dom"
 
 /* ================= PAGE IMPORTS ================= */
 
@@ -91,7 +92,7 @@ function App() {
       <Route path="/product/:productId" element={<ProductDetail />} /> {/* Product detail - public */}
       <Route path="/order-success" element={<OrderSuccess />} />       {/* After order placed */}
       <Route path="/delivery-login" element={<DeliveryLogin />} />     {/* Delivery partner login */}
-      <Route path="/delivery-dashboard" element={<DeliveryDashboard />} /> {/* Delivery partner dashboard */}
+       
 
 
       {/* ─────────────────────────────────────────
@@ -187,6 +188,12 @@ function App() {
           <SuperAdminLayout><DeliveryPartners /></SuperAdminLayout>
         </ProtectedRoute>
       } />
+
+      {/* Delivery partner dashboard */}
+      <Route path="/delivery-dashboard" element={
+        localStorage.getItem("dp_token") ? <DeliveryDashboard /> : <Navigate to="/delivery-login" replace />
+      } />
+
 
       <Route path="/stores" element={
         <ProtectedRoute roles={["super_admin"]}>

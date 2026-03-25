@@ -102,7 +102,6 @@ const startServer = async () => {
     const categoryRoutes = require("./routes/categoryRoutes");
     const bulkUploadRoutes = require("./routes/bulkUploadRoutes");
     const offerRoutes = require("./routes/offerRoutes");
-    const testRoutes = require("./routes/testRoutes");
     const userRoutes = require("./routes/userRoutes");
     const productRoutes = require("./routes/productRoutes");
     const orderRoutes = require("./routes/ordersRoutes");
@@ -123,7 +122,6 @@ const startServer = async () => {
     app.use("/api/categories", categoryRoutes);
     app.use("/api/bulk-upload", bulkUploadRoutes);
     app.use("/api/offers", offerRoutes);
-    app.use("/api/test", testRoutes);
     app.use("/api/users", userRoutes);
     app.use("/api/stores", storeRoutes);
     app.use("/api/delivery-partners", deliveryPartnerRoutes);
