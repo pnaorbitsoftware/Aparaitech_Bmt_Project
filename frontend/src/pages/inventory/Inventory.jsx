@@ -3,6 +3,19 @@ import { API } from "../../services/api";
 import { Plus, Upload, Search, Star, AlertTriangle, X, Save, PackageOpen, Link, ImagePlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
+// Store types that require expiry dates on products
+const EXPIRY_STORE_TYPES = ["General / Grocery Store", "Pharmacy / Medical"];
+
+// Store type → emoji badge
+const STORE_TYPE_META = {
+  "Restaurant / Food Court":  { emoji: "🍽️", color: "orange" },
+  "General / Grocery Store":  { emoji: "🛒", color: "green"  },
+  "Clothing & Fashion":       { emoji: "👗", color: "pink"   },
+  "Pharmacy / Medical":       { emoji: "💊", color: "red"    },
+  "Sports & Fitness":         { emoji: "🏋️", color: "blue"   },
+  "Electronics":              { emoji: "💻", color: "indigo" },
+};
+
 function Inventory() {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user"));
@@ -20,6 +33,9 @@ function Inventory() {
   const [showEdit, setShowEdit] = useState(false);
   const [editProduct, setEditProduct] = useState(null);
 
+  // Current store's type — determines whether expiry field is visible
+  const [currentStoreType, setCurrentStoreType] = useState(null);
+
   const emptyForm = {
     name: "", sku: "", category: "", price: "", discount_price: "",
     stock: "", reorder_level: "5", expiryDate: "", is_featured: false, image_url: ""
@@ -29,6 +45,7 @@ function Inventory() {
   useEffect(() => {
     loadProducts();
     if (isSuperAdmin) loadStores();
+    else loadCurrentStoreType();
   }, [storeFilter]);
 
   const loadProducts = async () => {
@@ -51,6 +68,24 @@ function Inventory() {
     } catch { console.error("Failed to load stores"); }
   };
 
+  // For regular admins — fetch their store's type once
+  const loadCurrentStoreType = async () => {
+    try {
+      const res = await API.get("/stores/my-store");
+      setCurrentStoreType(res.data?.data?.storeType || null);
+    } catch { setCurrentStoreType(null); }
+  };
+
+  // When super admin switches store filter, look up that store's type
+  const getStoreTypeForFilter = () => {
+    if (!storeFilter) return null;
+    const found = stores.find(s => s._id === storeFilter);
+    return found?.storeType || null;
+  };
+
+  const activeStoreType = isSuperAdmin ? getStoreTypeForFilter() : currentStoreType;
+  const showExpiry = EXPIRY_STORE_TYPES.includes(activeStoreType);
+
   const allCategories = ["All", ...new Set(products.map(p => p.category).filter(Boolean))];
   const lowStockCount = products.filter(p => p.isLowStock).length;
 
@@ -72,7 +107,8 @@ function Inventory() {
         discount_price: form.discount_price ? Number(form.discount_price) : null,
         stock: Number(form.stock),
         reorder_level: Number(form.reorder_level) || 5,
-        expiryDate: form.expiryDate || null,
+        // Only send expiryDate if this store type actually uses it
+        expiryDate: showExpiry ? (form.expiryDate || null) : null,
       });
       setShowAdd(false);
       setForm(emptyForm);
@@ -90,7 +126,7 @@ function Inventory() {
         discount_price: editProduct.discount_price ? Number(editProduct.discount_price) : null,
         stock: Number(editProduct.stock),
         reorder_level: Number(editProduct.reorder_level) || 5,
-        expiryDate: editProduct.expiryDate || null,
+        expiryDate: showExpiry ? (editProduct.expiryDate || null) : null,
       });
       setShowEdit(false);
       loadProducts();
@@ -117,6 +153,8 @@ function Inventory() {
     } catch { alert("Failed to update featured status"); }
   };
 
+  const storeTypeMeta = activeStoreType ? STORE_TYPE_META[activeStoreType] : null;
+
   return (
     <div className="space-y-6 p-2">
 
@@ -124,9 +162,34 @@ function Inventory() {
       <div className="flex justify-between items-center flex-wrap gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-800">Inventory</h1>
-          <p className="text-sm text-slate-500 mt-1">
-            {isSuperAdmin ? "All stores' products" : "Your store's products"}
-          </p>
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            <p className="text-sm text-slate-500">
+              {isSuperAdmin ? "All stores' products" : "Your store's products"}
+            </p>
+            {/* Store type badge */}
+            {storeTypeMeta && (
+              <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full
+                ${storeTypeMeta.color === "orange" ? "bg-orange-50 text-orange-600" : ""}
+                ${storeTypeMeta.color === "green"  ? "bg-green-50 text-green-700"  : ""}
+                ${storeTypeMeta.color === "pink"   ? "bg-pink-50 text-pink-600"    : ""}
+                ${storeTypeMeta.color === "red"    ? "bg-red-50 text-red-600"      : ""}
+                ${storeTypeMeta.color === "blue"   ? "bg-blue-50 text-blue-600"    : ""}
+                ${storeTypeMeta.color === "indigo" ? "bg-indigo-50 text-indigo-600": ""}
+              `}>
+                {storeTypeMeta.emoji} {activeStoreType}
+              </span>
+            )}
+            {/* Expiry hint badge */}
+            {activeStoreType && (
+              <span className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full border
+                ${showExpiry
+                  ? "bg-amber-50 text-amber-700 border-amber-200"
+                  : "bg-slate-50 text-slate-400 border-slate-200"}
+              `}>
+                {showExpiry ? "⏳ Expiry tracking on" : "⏳ No expiry tracking"}
+              </span>
+            )}
+          </div>
         </div>
         {isAdmin && (
           <div className="flex gap-3">
@@ -175,7 +238,10 @@ function Inventory() {
             className="border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400">
             <option value="">All Stores</option>
             {stores.map(s => (
-              <option key={s._id} value={s._id}>{s.name} — {s.admin?.name || "No admin"}</option>
+              <option key={s._id} value={s._id}>
+                {s.name} — {s.admin?.name || "No admin"}
+                {s.storeType ? ` (${s.storeType})` : ""}
+              </option>
             ))}
           </select>
         )}
@@ -210,7 +276,8 @@ function Inventory() {
                 <th className="p-4 text-right">Price</th>
                 <th className="p-4 text-right">Disc. Price</th>
                 <th className="p-4 text-center">Stock</th>
-                <th className="p-4 text-center">Expiry</th>
+                {/* Only show Expiry column if this store type tracks expiry */}
+                {showExpiry && <th className="p-4 text-center">Expiry</th>}
                 {isSuperAdmin && <th className="p-4 text-left">Store</th>}
                 {isAdmin && <th className="p-4 text-center">Featured</th>}
                 {isAdmin && <th className="p-4 text-center">Actions</th>}
@@ -247,9 +314,16 @@ function Inventory() {
                     <span className={`font-bold text-sm ${p.isLowStock ? "text-red-600" : "text-slate-700"}`}>{p.stock}</span>
                     {p.isLowStock && <div className="text-xs text-red-400">Min: {p.reorder_level}</div>}
                   </td>
-                  <td className="p-4 text-center"><ExpiryBadge expiryDate={p.expiryDate} /></td>
+                  {showExpiry && (
+                    <td className="p-4 text-center"><ExpiryBadge expiryDate={p.expiryDate} /></td>
+                  )}
                   {isSuperAdmin && (
-                    <td className="p-4 text-sm text-slate-500">{p.storeId?.name || <span className="text-slate-300">—</span>}</td>
+                    <td className="p-4 text-sm text-slate-500">
+                      <div>{p.storeId?.name || <span className="text-slate-300">—</span>}</div>
+                      {p.storeId?.storeType && (
+                        <div className="text-xs text-slate-400">{STORE_TYPE_META[p.storeId.storeType]?.emoji} {p.storeId.storeType}</div>
+                      )}
+                    </td>
                   )}
                   {isAdmin && (
                     <td className="p-4 text-center">
@@ -282,17 +356,33 @@ function Inventory() {
 
       {showAdd && (
         <ProductModal title="Add Product" onClose={() => setShowAdd(false)}>
-          <ProductForm product={form} setProduct={setForm} onSubmit={handleAdd} submitLabel="Add Product" />
+          <ProductForm
+            product={form}
+            setProduct={setForm}
+            onSubmit={handleAdd}
+            submitLabel="Add Product"
+            showExpiry={showExpiry}
+            storeType={activeStoreType}
+          />
         </ProductModal>
       )}
       {showEdit && editProduct && (
         <ProductModal title="Edit Product" onClose={() => setShowEdit(false)}>
-          <ProductForm product={editProduct} setProduct={setEditProduct} onSubmit={handleUpdate} submitLabel="Save Changes" />
+          <ProductForm
+            product={editProduct}
+            setProduct={setEditProduct}
+            onSubmit={handleUpdate}
+            submitLabel="Save Changes"
+            showExpiry={showExpiry}
+            storeType={activeStoreType}
+          />
         </ProductModal>
       )}
     </div>
   );
 }
+
+/* ─────────────── Sub-components ─────────────── */
 
 function StatCard({ label, value, color, onClick, active }) {
   const colors = {
@@ -313,8 +403,9 @@ function StatCard({ label, value, color, onClick, active }) {
 function ExpiryBadge({ expiryDate }) {
   if (!expiryDate) return <span className="text-slate-300 text-xs">—</span>;
   const days = Math.ceil((new Date(expiryDate) - new Date()) / 86400000);
-  if (days <= 0) return <span className="px-2.5 py-1 text-xs rounded-full bg-red-100 text-red-600 font-semibold">Expired</span>;
-  if (days <= 7) return <span className="px-2.5 py-1 text-xs rounded-full bg-orange-100 text-orange-600 font-semibold">Near Expiry</span>;
+  if (days <= 0)  return <span className="px-2.5 py-1 text-xs rounded-full bg-red-100 text-red-600 font-semibold">Expired</span>;
+  if (days <= 7)  return <span className="px-2.5 py-1 text-xs rounded-full bg-orange-100 text-orange-600 font-semibold">Near Expiry</span>;
+  if (days <= 30) return <span className="px-2.5 py-1 text-xs rounded-full bg-yellow-100 text-yellow-700 font-semibold">{days}d left</span>;
   return <span className="px-2.5 py-1 text-xs rounded-full bg-green-100 text-green-600 font-semibold">Safe</span>;
 }
 
@@ -334,7 +425,7 @@ function ProductModal({ title, children, onClose }) {
   );
 }
 
-function ProductForm({ product, setProduct, onSubmit, submitLabel }) {
+function ProductForm({ product, setProduct, onSubmit, submitLabel, showExpiry, storeType }) {
   const user = JSON.parse(localStorage.getItem("user"));
   const [storeCategories, setStoreCategories] = useState([]);
   const [uploading, setUploading] = useState(false);
@@ -383,6 +474,21 @@ function ProductForm({ product, setProduct, onSubmit, submitLabel }) {
   return (
     <div className="space-y-3">
 
+      {/* Store type hint banner */}
+      {storeType && (
+        <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium
+          ${showExpiry
+            ? "bg-amber-50 border border-amber-200 text-amber-700"
+            : "bg-slate-50 border border-slate-200 text-slate-500"}
+        `}>
+          <span>{STORE_TYPE_META[storeType]?.emoji}</span>
+          <span>{storeType}</span>
+          <span className="ml-auto opacity-70">
+            {showExpiry ? "Expiry date required" : "No expiry tracking"}
+          </span>
+        </div>
+      )}
+
       {[
         { label: "Product Name *", key: "name", placeholder: "e.g. Basmati Rice 1kg" },
         { label: "SKU *", key: "sku", placeholder: "e.g. RICE-BAS-1KG" },
@@ -409,8 +515,6 @@ function ProductForm({ product, setProduct, onSubmit, submitLabel }) {
       {/* IMAGE — URL paste OR file upload */}
       <div>
         <label className="block text-xs font-semibold text-slate-600 mb-1">Product Image</label>
-
-        {/* Tab switcher */}
         <div className="flex gap-2 mb-2">
           <button type="button" onClick={() => setImageTab("url")}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${
@@ -426,7 +530,6 @@ function ProductForm({ product, setProduct, onSubmit, submitLabel }) {
           </button>
         </div>
 
-        {/* URL paste */}
         {imageTab === "url" && (
           <div>
             <input
@@ -440,7 +543,6 @@ function ProductForm({ product, setProduct, onSubmit, submitLabel }) {
           </div>
         )}
 
-        {/* File upload */}
         {imageTab === "upload" && (
           <div className="border-2 border-dashed border-slate-200 rounded-lg p-4 text-center">
             <input type="file" accept="image/*" onChange={handleFileUpload}
@@ -462,7 +564,6 @@ function ProductForm({ product, setProduct, onSubmit, submitLabel }) {
           </div>
         )}
 
-        {/* Preview with remove button */}
         {product.image_url && (
           <div className="relative mt-2">
             <img src={product.image_url} alt="preview"
@@ -494,13 +595,24 @@ function ProductForm({ product, setProduct, onSubmit, submitLabel }) {
         ))}
       </div>
 
-      <div>
-        <label className="block text-xs font-semibold text-slate-600 mb-1">Expiry Date</label>
-        <input type="date"
-          className="border border-slate-200 p-2.5 w-full rounded-lg text-sm focus:ring-2 focus:ring-green-400 outline-none"
-          value={product.expiryDate ? product.expiryDate.substring(0, 10) : ""}
-          onChange={e => setProduct({ ...product, expiryDate: e.target.value })} />
-      </div>
+      {/* ── EXPIRY DATE — only shown for General / Pharmacy stores ── */}
+      {showExpiry && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+          <label className="block text-xs font-semibold text-amber-700 mb-1.5 flex items-center gap-1.5">
+            ⏳ Expiry Date
+            <span className="text-amber-500 font-normal">(required for this store type)</span>
+          </label>
+          <input type="date"
+            className="border border-amber-300 bg-white p-2.5 w-full rounded-lg text-sm focus:ring-2 focus:ring-amber-400 outline-none"
+            value={product.expiryDate ? product.expiryDate.substring(0, 10) : ""}
+            onChange={e => setProduct({ ...product, expiryDate: e.target.value })} />
+          {product.expiryDate && (
+            <p className="text-xs text-amber-600 mt-1.5">
+              {Math.ceil((new Date(product.expiryDate) - new Date()) / 86400000)} days until expiry
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="flex items-center gap-3 bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-3">
         <input type="checkbox" id="featured" checked={product.is_featured || false}

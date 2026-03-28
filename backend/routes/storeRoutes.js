@@ -5,13 +5,15 @@ const allowRole = require("../middleware/roleMiddleware");
 const Store = require("../models/Store");
 const User = require("../models/User");
 
+// Pull helpers from the model file (no separate util file needed)
+const { detectStoreType, STORE_TYPES } = Store;
 
 // @desc  Get all active stores (PUBLIC - no auth required)
 // @route GET /api/stores/public
 router.get("/public", async (req, res) => {
   try {
     const stores = await Store.find({ isActive: true })
-      .select("name categories address phone isActive")
+      .select("name categories storeType address phone isActive")
       .sort({ createdAt: -1 });
     res.json({ success: true, data: stores });
   } catch (err) {
@@ -23,14 +25,24 @@ router.get("/public", async (req, res) => {
 // @route POST /api/stores
 router.post("/", verifyToken, allowRole(["super_admin"]), async (req, res) => {
   try {
-    const { name, categories, address, phone, email, adminId } = req.body;
+    const { name, categories, address, phone, email, adminId, storeType } = req.body;
 
     const admin = await User.findOne({ _id: adminId, role: "admin" });
-    if (!admin) return res.status(404).json({ success: false, message: "Admin not found" });
+    if (!admin)
+      return res.status(404).json({ success: false, message: "Admin not found" });
+
+    // Prefer explicit storeType; fall back to auto-detect from categories
+    const resolvedStoreType = storeType || detectStoreType(categories);
 
     const store = await Store.create({
-      name, categories: categories || [], address, phone, email,
-      admin: adminId, createdBy: req.user.id,
+      name,
+      categories: categories || [],
+      storeType: resolvedStoreType,
+      address,
+      phone,
+      email,
+      admin: adminId,
+      createdBy: req.user.id,
     });
 
     await User.findByIdAndUpdate(adminId, { storeId: store._id });
@@ -56,18 +68,25 @@ router.get("/", verifyToken, allowRole(["super_admin"]), async (req, res) => {
 });
 
 // @desc  Get current admin's own store (admin only)
+//        Now includes storeType so the frontend can decide expiry visibility
 // @route GET /api/stores/my-store
 router.get("/my-store", verifyToken, allowRole(["admin"]), async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("storeId");
     if (!user?.storeId) return res.json({ success: true, data: null });
-    const store = await Store.findById(user.storeId).select("name categories");
+
+    const store = await Store.findById(user.storeId).select("name categories storeType");
     res.json({ success: true, data: store });
   } catch (err) {
     res.status(500).json({ success: false, message: "Failed to fetch store" });
   }
 });
 
+// @desc  Get available store types (for dropdowns in frontend)
+// @route GET /api/stores/types
+router.get("/types", (req, res) => {
+  res.json({ success: true, data: STORE_TYPES });
+});
 
 // @desc  Get single store with staff
 // @route GET /api/stores/:id
@@ -76,9 +95,9 @@ router.get("/:id", verifyToken, allowRole(["super_admin"]), async (req, res) => 
     const store = await Store.findById(req.params.id)
       .populate("admin", "name email mobile")
       .populate("createdBy", "name");
-    if (!store) return res.status(404).json({ success: false, message: "Store not found" });
+    if (!store)
+      return res.status(404).json({ success: false, message: "Store not found" });
 
-    // Get staff for this store
     const staff = await User.find({ storeId: store._id, role: "staff" })
       .select("-password")
       .sort({ createdAt: -1 });
@@ -89,34 +108,38 @@ router.get("/:id", verifyToken, allowRole(["super_admin"]), async (req, res) => 
   }
 });
 
-// @desc  Update store (including changing admin)
+// @desc  Update store (including changing admin or storeType)
 // @route PUT /api/stores/:id
 router.put("/:id", verifyToken, allowRole(["super_admin"]), async (req, res) => {
   try {
-    const { adminId, ...rest } = req.body;
+    const { adminId, storeType, categories, ...rest } = req.body;
 
     const currentStore = await Store.findById(req.params.id);
-    if (!currentStore) return res.status(404).json({ success: false, message: "Store not found" });
+    if (!currentStore)
+      return res.status(404).json({ success: false, message: "Store not found" });
 
     // Handle admin change
     if (adminId && adminId !== String(currentStore.admin)) {
-      // Verify new admin exists
       const newAdmin = await User.findOne({ _id: adminId, role: "admin" });
-      if (!newAdmin) return res.status(404).json({ success: false, message: "New admin not found" });
+      if (!newAdmin)
+        return res.status(404).json({ success: false, message: "New admin not found" });
 
-      // Remove storeId from old admin
       if (currentStore.admin) {
         await User.findByIdAndUpdate(currentStore.admin, { $unset: { storeId: "" } });
       }
-
-      // Assign storeId to new admin
       await User.findByIdAndUpdate(adminId, { storeId: currentStore._id });
       rest.admin = adminId;
     }
 
-    const store = await Store.findByIdAndUpdate(req.params.id, rest, {
-      new: true, runValidators: true,
-    }).populate("admin", "name email");
+    // Prefer explicit storeType; if categories changed and storeType not set, re-detect
+    const resolvedStoreType =
+      storeType || detectStoreType(categories || currentStore.categories);
+
+    const store = await Store.findByIdAndUpdate(
+      req.params.id,
+      { ...rest, categories, storeType: resolvedStoreType },
+      { new: true, runValidators: true }
+    ).populate("admin", "name email");
 
     res.json({ success: true, message: "Store updated", data: store });
   } catch (err) {
@@ -130,17 +153,15 @@ router.put("/:id", verifyToken, allowRole(["super_admin"]), async (req, res) => 
 router.delete("/:id", verifyToken, allowRole(["super_admin"]), async (req, res) => {
   try {
     const store = await Store.findById(req.params.id);
-    if (!store) return res.status(404).json({ success: false, message: "Store not found" });
+    if (!store)
+      return res.status(404).json({ success: false, message: "Store not found" });
 
-    // Remove storeId from admin
     if (store.admin) {
       await User.findByIdAndUpdate(store.admin, { $unset: { storeId: "" } });
     }
-
-    // Remove storeId from all staff
     await User.updateMany({ storeId: store._id }, { $unset: { storeId: "" } });
-
     await Store.findByIdAndDelete(req.params.id);
+
     res.json({ success: true, message: "Store deleted successfully" });
   } catch (err) {
     console.error("DELETE STORE ERROR:", err);

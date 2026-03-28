@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom"; // ✅ ADD THIS
+import { useNavigate } from "react-router-dom"; 
 import { API } from "../../services/api";
 
 function UserManagement({ roleFilter = null }) {
-  const navigate = useNavigate(); // ✅ ADD THIS
+  const navigate = useNavigate(); 
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -86,7 +86,7 @@ function UserManagement({ roleFilter = null }) {
     setShowModal(true);
   };
 
-  // ✅ FIXED: Navigate to the StoreAdminProfile page instead of opening a modal
+  // Navigate to the StoreAdminProfile page instead of opening a modal
   const handleViewProfile = (user) => {
     navigate(`/store-admin/${user._id}`);
   };
