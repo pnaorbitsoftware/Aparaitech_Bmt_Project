@@ -1,7 +1,7 @@
-import { API } from "../api";
+import { API } from "./api";
 
 export const sendBillSMS = async (transactionId, mobile) => {
-  return API.post("/api/sms/send-bill", {
+  return API.post("/sms/send-bill", {
     transactionId,
     mobile
   });

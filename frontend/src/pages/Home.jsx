@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { FaBox, FaMoneyBillWave, FaUsers, FaChartLine } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+import { API } from "../services/api";
 
 function Home() {
   const navigate = useNavigate();

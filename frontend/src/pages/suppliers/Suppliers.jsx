@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { API } from "../services/api";
+import { API } from "../../services/api";
 
 function Suppliers() {
   const [vendors, setVendors] = useState([]);
@@ -27,8 +27,13 @@ function Suppliers() {
   }, []);
 
   const loadVendors = async () => {
-    const res = await API.get("/vendors");
-    setVendors(res.data);
+    try {
+      const res = await API.get("/vendors");
+      setVendors(res.data || []);
+    } catch (err) {
+      console.error("Failed to load vendors:", err);
+      alert("Failed to load vendors");
+    }
   };
 
   // Search filter

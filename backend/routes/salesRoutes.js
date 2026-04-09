@@ -1,11 +1,12 @@
 const express = require("express");
 const router = express.Router();
 const verifyToken = require("../middleware/authMiddleware");
+const allowRole = require("../middleware/roleMiddleware");
 const Product = require("../models/Product");
 const Sale = require("../models/Sale");
 const mongoose = require("mongoose");
 
-router.post("/add", verifyToken, async (req, res) => {
+router.post("/add", verifyToken, allowRole(["admin", "staff", "super_admin"]), async (req, res) => {
   const { product_id, quantity } = req.body;
   if (!product_id || !quantity) {
     return res.status(400).json({ message: "Product and quantity required" });

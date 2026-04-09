@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { API } from "../services/api";
+import { API } from "../../services/api";
 import { Upload, FileText, CheckCircle, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -20,7 +20,7 @@ function BulkUploadInventory() {
     try {
       setLoading(true);
       const res = await API.post(
-        "/api/bulk-upload/inventory",
+        "/bulk-upload/inventory",
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );

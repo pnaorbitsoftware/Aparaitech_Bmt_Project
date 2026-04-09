@@ -11,7 +11,7 @@ const dashboardController = require("../controllers/dashboardController");
 router.get(
   "/stats",
   verifyToken,
-  allowRole(["admin", "staff"]),
+  allowRole(["admin", "staff", "super_admin"]),
   dashboardController.getStats
 );
 
@@ -22,7 +22,7 @@ router.get(
 router.get(
   "/weekly-revenue",
   verifyToken,
-  allowRole(["admin", "staff"]),
+  allowRole(["admin", "staff", "super_admin"]),
   dashboardController.getWeeklyRevenue
 );
 
@@ -33,7 +33,7 @@ router.get(
 router.get(
   "/payment-chart",
   verifyToken,
-  allowRole(["admin", "staff"]),
+  allowRole(["admin", "staff", "super_admin"]),
   dashboardController.getPaymentChart
 );
 
@@ -44,7 +44,7 @@ router.get(
 router.get(
   "/recent-transactions",
   verifyToken,
-  allowRole(["admin", "staff"]),
+  allowRole(["admin", "staff", "super_admin"]),
   dashboardController.getRecentTransactions
 );
 
@@ -55,7 +55,7 @@ router.get(
 router.get(
   "/low-stock",
   verifyToken,
-  allowRole(["admin", "staff"]),
+  allowRole(["admin", "staff", "super_admin"]),
   dashboardController.getLowStock
 );
 
