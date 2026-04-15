@@ -26,7 +26,6 @@ import Orders from "./pages/orders/Orders";               // Super admin orders 
 import AdminOrders from "./pages/orders/AdminOrders";     // Admin store orders view
 
 // Delivery
-import DeliveryLogin from "./pages/delivery/DeliveryLogin";         // Delivery partner login
 import DeliveryDashboard from "./pages/delivery/DeliveryDashboard"; // Delivery partner dashboard
 import DeliveryPartners from "./pages/delivery/DeliveryPartners";   // Super admin manage delivery partners
 
@@ -91,8 +90,6 @@ function App() {
       <Route path="/shop/:storeId" element={<ShopPage />} />           {/* Store page - public so anyone can browse */}
       <Route path="/product/:productId" element={<ProductDetail />} /> {/* Product detail - public */}
       <Route path="/order-success" element={<OrderSuccess />} />       {/* After order placed */}
-      <Route path="/delivery-login" element={<DeliveryLogin />} />     {/* Delivery partner login */}
-       
 
 
       {/* ─────────────────────────────────────────
@@ -189,11 +186,8 @@ function App() {
         </ProtectedRoute>
       } />
 
-      {/* Delivery partner dashboard */}
-      <Route path="/delivery-dashboard" element={
-        localStorage.getItem("dp_token") ? <DeliveryDashboard /> : <Navigate to="/delivery-login" replace />
-      } />
-
+      {/* Delivery partner dashboard — uses DeliveryRoute so token is checked fresh every render */}
+      <Route path="/delivery-dashboard" element={<DeliveryRoute />} />
 
       <Route path="/stores" element={
         <ProtectedRoute roles={["super_admin"]}>
@@ -294,6 +288,18 @@ function App() {
 
     </Routes>
   );
+}
+
+/* ─────────────────────────────────────────
+   DELIVERY ROUTE GUARD
+   
+   Must be a component (not inline expression) so that
+   localStorage is read fresh on every render — not just
+   once when App mounts.
+───────────────────────────────────────── */
+function DeliveryRoute() {
+  const token = localStorage.getItem("dp_token");
+  return token ? <DeliveryDashboard /> : <Navigate to="/login" replace />;
 }
 
 /* ─────────────────────────────────────────
