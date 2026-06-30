@@ -93,7 +93,6 @@ const productSchema = new mongoose.Schema({
   }
 });
 
-productSchema.index({ sku: 1 });
 productSchema.index({ is_active: 1, created_at: -1 });
 productSchema.index({ storeId: 1, is_active: 1 });
 

@@ -35,8 +35,7 @@ desktop.ini
 *.swo
 *~
 
-# Package lock (optional - team preference)
-package-lock.json
+# Alternative package-manager locks
 yarn.lock
 pnpm-lock.yaml
 
