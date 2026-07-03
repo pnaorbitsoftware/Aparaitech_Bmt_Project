@@ -38,7 +38,7 @@ exports.updateUser = async (req, res) => {
     if (targetUser?.role === 'super_admin' && req.user.role !== 'super_admin')
       return res.status(403).json({ success: false, message: "Cannot modify super admin" });
 
-    const user = await User.findByIdAndUpdate(id, { name, email, role, isActive, permissions }, { new: true, runValidators: true }).select('-password');
+    const user = await User.findByIdAndUpdate(id, { name, email, role, isActive, permissions }, { returnDocument: "after", runValidators: true }).select('-password');
     if (!user) return res.status(404).json({ success: false, message: "User not found" });
     res.json({ success: true, message: "User updated successfully", data: user });
   } catch (err) {
@@ -74,7 +74,7 @@ exports.getProfile = async (req, res) => {
 exports.updateProfile = async (req, res) => {
   try {
     const { name, email } = req.body;
-    const user = await User.findByIdAndUpdate(req.user.id, { name, email }, { new: true, runValidators: true }).select('-password');
+    const user = await User.findByIdAndUpdate(req.user.id, { name, email }, { returnDocument: "after", runValidators: true }).select('-password');
     res.json({ success: true, message: "Profile updated successfully", data: user });
   } catch (err) {
     res.status(500).json({ success: false, message: "Failed to update profile" });
@@ -150,7 +150,7 @@ exports.updateMyStaff = async (req, res) => {
     const staffMember = await User.findOne({ _id: id, role: "staff", storeId: admin.storeId });
     if (!staffMember) return res.status(404).json({ success: false, message: "Staff not found in your store" });
 
-    const updated = await User.findByIdAndUpdate(id, { name, email, isActive }, { new: true }).select("-password");
+    const updated = await User.findByIdAndUpdate(id, { name, email, isActive }, { returnDocument: "after" }).select("-password");
     res.json({ success: true, message: "Staff updated", data: updated });
   } catch (err) {
     console.error("UPDATE MY STAFF ERROR:", err);
@@ -227,7 +227,7 @@ exports.updateAdmin = async (req, res) => {
     const targetAdmin = await User.findOne({ _id: id, role: "admin" });
     if (!targetAdmin) return res.status(404).json({ success: false, message: "Admin not found" });
 
-    const updatedAdmin = await User.findByIdAndUpdate(id, { name, email, isActive, permissions }, { new: true, runValidators: true }).select("-password");
+    const updatedAdmin = await User.findByIdAndUpdate(id, { name, email, isActive, permissions }, { returnDocument: "after", runValidators: true }).select("-password");
     res.json({ success: true, message: "Admin updated successfully", data: updatedAdmin });
   } catch (err) {
     res.status(500).json({ success: false, message: "Failed to update admin" });

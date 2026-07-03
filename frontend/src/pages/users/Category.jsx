@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { FaArrowLeft, FaSearch } from "react-icons/fa";
 
-const PUBLIC = axios.create({ baseURL: "http://localhost:5000/api" });
+const PUBLIC = axios.create({ baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api" });
 
 const CATEGORY_HEROES = {
   "Grocery": { bg: "linear-gradient(135deg,#2d6a4f,#1b4332)", emoji: "🛒", sub: "FRESH • FAST • DELIVERED" },

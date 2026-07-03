@@ -24,8 +24,18 @@ const OrderSchema = new mongoose.Schema({
   },
   paymentMethod: {
     type: String,
+    enum: ["COD", "Razorpay"],
     default: "COD"
   },
+  paymentStatus: {
+    type: String,
+    enum: ["pending", "paid", "failed", "cancelled", "refunded"],
+    default: "pending",
+    index: true,
+  },
+  razorpayOrderId: { type: String, default: null, index: true },
+  razorpayPaymentId: { type: String, default: null },
+  paymentFailureReason: { type: String, default: null },
   deliveryPartnerId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "DeliveryPartner",
@@ -40,6 +50,10 @@ const OrderSchema = new mongoose.Schema({
   deliveryCharge: Number,
   gst: Number,
   totalAmount: Number,
+  customerLocation: {
+    latitude: { type: Number, min: -90, max: 90 },
+    longitude: { type: Number, min: -180, max: 180 },
+  },
   status: {
     type: String,
     default: "Placed",

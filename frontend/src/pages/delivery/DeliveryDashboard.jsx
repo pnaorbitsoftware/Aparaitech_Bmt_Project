@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { FaMotorcycle, FaSignOutAlt, FaMapMarkerAlt, FaPhone } from "react-icons/fa";
 import { CheckCircle, Truck, MapPin, Bug } from "lucide-react";
+import NotificationMenu from "../../components/common/NotificationMenu";
 
 const STATUS_COLORS = {
   Confirmed:          "bg-yellow-100 text-yellow-700",
@@ -97,6 +98,7 @@ export default function DeliveryDashboard() {
   const [updating, setUpdating] = useState(null);
   const [partner, setPartner] = useState(null);
   const [locationStatus, setLocationStatus] = useState("idle");
+  const [locationError, setLocationError] = useState("");
   const [myLocation, setMyLocation] = useState(null); // { lat, lng }
   const [serverLocation, setServerLocation] = useState(null); // what server stored
   const [showDebug, setShowDebug] = useState(false);
@@ -107,7 +109,7 @@ export default function DeliveryDashboard() {
   const partnerData = JSON.parse(localStorage.getItem("dp_user") || "{}");
 
   const API = axios.create({
-    baseURL: "http://localhost:5000/api",
+    baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
     headers: { Authorization: `Bearer ${dpToken}` }
   });
 
@@ -129,6 +131,13 @@ export default function DeliveryDashboard() {
     if (locationIntervalRef.current) return;
     if (!navigator.geolocation) { setLocationStatus("error"); return; }
     setLocationStatus("sharing");
+    setLocationError("");
+    const stopTimer = () => {
+      if (locationIntervalRef.current) {
+        clearInterval(locationIntervalRef.current);
+        locationIntervalRef.current = null;
+      }
+    };
     const pushLocation = () => {
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
@@ -141,15 +150,26 @@ export default function DeliveryDashboard() {
             // Also fetch back from server to confirm it saved correctly
             if (partnerData?.id || partnerData?._id) {
               const id = partnerData.id || partnerData._id;
-              const res = await fetch(`http://localhost:5000/api/delivery-partners/${id}/location`);
-              const data = await res.json();
+              const { data } = await API.get(`/delivery-partners/${id}/location`);
               if (data.location) setServerLocation(data.location);
             }
           } catch (err) {
-            console.error("Location push failed:", err);
+            if (err.response?.status === 429) {
+              stopTimer();
+              setLocationStatus("error");
+              setLocationError("Live updates are temporarily paused. Wait a moment and try again.");
+            } else {
+              console.error("Location push failed:", err.response?.data?.message || err.message);
+            }
           }
         },
-        () => setLocationStatus("error"),
+        (error) => {
+          stopTimer();
+          setLocationStatus("error");
+          setLocationError(error.code === 1
+            ? "Location permission is blocked. Allow it in browser site settings."
+            : "Current location is unavailable. Turn on GPS and try again.");
+        },
         { enableHighAccuracy: true, timeout: 10000 }
       );
     };
@@ -163,6 +183,7 @@ export default function DeliveryDashboard() {
       locationIntervalRef.current = null;
     }
     setLocationStatus("idle");
+    setLocationError("");
   };
 
   // Manual one-time location test (even without active delivery)
@@ -178,8 +199,7 @@ export default function DeliveryDashboard() {
           setLastPushed(new Date());
           const id = partnerData?.id || partnerData?._id;
           if (id) {
-            const res = await fetch(`http://localhost:5000/api/delivery-partners/${id}/location`);
-            const data = await res.json();
+            const { data } = await API.get(`/delivery-partners/${id}/location`);
             if (data.location) setServerLocation(data.location);
           }
           alert("✅ Location pushed! Check the map below.");
@@ -246,6 +266,7 @@ export default function DeliveryDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <NotificationMenu tokenKey="dp_token" />
             {locationStatus === "sharing" && (
               <div className="flex items-center gap-1.5 bg-white/20 rounded-full px-3 py-1">
                 <span className="w-2 h-2 bg-green-300 rounded-full animate-pulse inline-block" />
@@ -393,8 +414,8 @@ export default function DeliveryDashboard() {
           <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-center gap-3">
             <span className="text-2xl">⚠️</span>
             <div>
-              <p className="font-bold text-red-700 text-sm">Location access denied</p>
-              <p className="text-xs text-red-500">Enable GPS in browser settings for live tracking</p>
+              <p className="font-bold text-red-700 text-sm">Live location unavailable</p>
+              <p className="text-xs text-red-500">{locationError || "Enable GPS in browser settings for live tracking"}</p>
             </div>
           </div>
         )}

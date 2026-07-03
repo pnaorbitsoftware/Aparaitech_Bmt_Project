@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaMapMarkerAlt, FaSearch, FaShoppingCart } from "react-icons/fa";
 import CartDrawer from "../../components/user/CartDrawer";
+import NotificationMenu from "../common/NotificationMenu";
+import { API } from "../../services/api";
 
 export default function UserTopbar() {
 
@@ -40,16 +42,18 @@ export default function UserTopbar() {
       async (position) => {
         const lat = position.coords.latitude;
         const lon = position.coords.longitude;
+        localStorage.setItem("userLocation", JSON.stringify({ lat, lng: lon, source: "gps" }));
+        API.put("/users/location", { latitude: lat, longitude: lon }).catch(() => {});
         try {
-          const res = await fetch(`http://localhost:5000/api/users/geocode?lat=${lat}&lon=${lon}`);
-          const data = await res.json();
+          const { data } = await API.get(`/users/geocode?lat=${lat}&lon=${lon}`);
           const city = data.address.city || data.address.town || data.address.village || "Your Location";
           setLocation(city);
         } catch {
           setLocation("Location found");
         }
       },
-      () => setLocation("Location denied")
+      (error) => setLocation(error.code === 1 ? "Location permission denied" : "Location unavailable"),
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
     );
   };
 
@@ -59,6 +63,7 @@ export default function UserTopbar() {
 
         {/* LEFT */}
         <div className="flex items-center gap-6">
+          <NotificationMenu />
           <h1 onClick={() => navigate("/user-dashboard")} className="text-2xl font-bold text-purple-600 cursor-pointer">
             SmartStore
           </h1>

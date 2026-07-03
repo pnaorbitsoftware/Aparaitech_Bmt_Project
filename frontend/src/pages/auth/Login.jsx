@@ -4,7 +4,7 @@ import axios from "axios";
 import { FaEye, FaEyeSlash, FaStore, FaUser, FaMotorcycle, FaMapMarkerAlt, FaLocationArrow } from "react-icons/fa";
 import { IoFlash } from "react-icons/io5";
 
-const API_BASE = axios.create({ baseURL: "http://localhost:5000/api" });
+const API_BASE = axios.create({ baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api" });
 
 /* ─────────────────────────────────────────
    BARAMATI SERVICE AREA CONFIG
@@ -64,14 +64,16 @@ function LocationCheck({ onSuccess, onBack }) {
         const { latitude, longitude } = pos.coords;
         // Try to get city name
         try {
-          const r = await fetch(`http://localhost:5000/api/users/geocode?lat=${latitude}&lon=${longitude}`);
-          const d = await r.json();
+          const { data: d } = await API_BASE.get(`/users/geocode?lat=${latitude}&lon=${longitude}`);
           const city = d.address?.city || d.address?.town || d.address?.village || "";
           setDetectedCity(city);
-        } catch {}
+        } catch (error) {
+          console.warn("Reverse geocoding unavailable", error.message);
+        }
 
         if (isInServiceArea(latitude, longitude)) {
           localStorage.setItem("userLocation", JSON.stringify({ lat: latitude, lng: longitude, source: "gps" }));
+          API_BASE.put("/users/location", { latitude, longitude }, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }).catch(() => {});
           setStep("success");
           setTimeout(onSuccess, 1800);
         } else {

@@ -5,13 +5,14 @@ const allowRole = require("../middleware/roleMiddleware");
 const DeliveryPartner = require("../models/DeliveryPartner");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
+const { createNotification } = require("../utils/inAppNotifications");
 
 // @desc  Get all delivery partners
 // @route GET /api/delivery-partners
 router.get("/", verifyToken, allowRole(["super_admin", "admin"]), async (req, res) => {
-  const partners = await DeliveryPartner.find().sort({ createdAt: -1 });
-  res.json({ success: true, count: partners.length, data: partners });
   try {
+    const partners = await DeliveryPartner.find().sort({ createdAt: -1 });
+    res.json({ success: true, count: partners.length, data: partners });
   } catch (err) {
     res.status(500).json({ success: false, message: "Failed to fetch delivery partners" });
   }
@@ -41,7 +42,7 @@ router.post("/", verifyToken, allowRole(["super_admin"]), async (req, res) => {
 router.put("/:id", verifyToken, allowRole(["super_admin"]), async (req, res) => {
   try {
     const partner = await DeliveryPartner.findByIdAndUpdate(
-      req.params.id, req.body, { new: true, runValidators: true }
+      req.params.id, req.body, { returnDocument: "after", runValidators: true }
     );
     if (!partner) return res.status(404).json({ success: false, message: "Partner not found" });
     res.json({ success: true, message: "Partner updated", data: partner });
@@ -115,7 +116,7 @@ router.put("/:id/set-password", verifyToken, allowRole(["super_admin"]), async (
 
     const hashed = await bcrypt.hash(password, 10);
     const partner = await DeliveryPartner.findByIdAndUpdate(
-      req.params.id, { password: hashed }, { new: true }
+      req.params.id, { password: hashed }, { returnDocument: "after" }
     );
     if (!partner) return res.status(404).json({ success: false, message: "Partner not found" });
     res.json({ success: true, message: "Password set successfully" });
@@ -127,6 +128,7 @@ router.put("/:id/set-password", verifyToken, allowRole(["super_admin"]), async (
 // ─── GET MY ASSIGNED ORDERS ──────────────────────────────
 router.get("/my-orders", verifyToken, async (req, res) => {
   try {
+    if (req.user.role !== "delivery_partner") return res.status(403).json({ success: false, message: "Delivery access required" });
     const Order = require("../models/Order");
     const orders = await Order.find({ deliveryPartnerId: req.user.id })
       .sort({ createdAt: -1 })
@@ -140,14 +142,15 @@ router.get("/my-orders", verifyToken, async (req, res) => {
 // ─── UPDATE ORDER STATUS ─────────────────────────────────
 router.put("/order/:orderId/status", verifyToken, async (req, res) => {
   try {
+    if (req.user.role !== "delivery_partner") return res.status(403).json({ success: false, message: "Delivery access required" });
     const Order = require("../models/Order");
     const { status } = req.body;
     const allowed = ["Out for Delivery", "Delivered"];
     if (!allowed.includes(status))
       return res.status(400).json({ success: false, message: "Invalid status" });
 
-    const order = await Order.findByIdAndUpdate(
-      req.params.orderId, { status }, { new: true }
+    const order = await Order.findOneAndUpdate(
+      { _id: req.params.orderId, deliveryPartnerId: req.user.id }, { status }, { returnDocument: "after" }
     );
     if (!order) return res.status(404).json({ success: false, message: "Order not found" });
 
@@ -158,6 +161,8 @@ router.put("/order/:orderId/status", verifyToken, async (req, res) => {
         location: null, // clear location on delivery
       });
     }
+
+    await createNotification({ recipientType: "user", recipientId: order.userId, title: "Delivery update", message: `Your order is now ${status}.`, type: "status", orderId: order._id });
 
     res.json({ success: true, order });
   } catch (err) {
@@ -170,12 +175,15 @@ router.put("/order/:orderId/status", verifyToken, async (req, res) => {
 // Body: { lat, lng }
 router.put("/location", verifyToken, async (req, res) => {
   try {
+    if (req.user.role !== "delivery_partner") return res.status(403).json({ success: false, message: "Delivery access required" });
     const { lat, lng } = req.body;
-    if (!lat || !lng)
-      return res.status(400).json({ success: false, message: "lat and lng required" });
+    const latitude = Number(lat);
+    const longitude = Number(lng);
+    if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90 || !Number.isFinite(longitude) || longitude < -180 || longitude > 180)
+      return res.status(400).json({ success: false, message: "Valid lat and lng are required" });
 
     await DeliveryPartner.findByIdAndUpdate(req.user.id, {
-      location: { lat: Number(lat), lng: Number(lng), updatedAt: new Date() }
+      location: { lat: latitude, lng: longitude, updatedAt: new Date() }
     });
 
     res.json({ success: true });
@@ -187,7 +195,7 @@ router.put("/location", verifyToken, async (req, res) => {
 // ─── GET DELIVERY PARTNER LOCATION (user polls this) ─────
 // GET /api/delivery-partners/:id/location
 // No auth needed so user can poll it
-router.get("/:id/location", async (req, res) => {
+router.get("/:id/location", verifyToken, async (req, res) => {
   try {
     const partner = await DeliveryPartner.findById(req.params.id).select("location name vehicleType");
     if (!partner) return res.status(404).json({ success: false, message: "Partner not found" });

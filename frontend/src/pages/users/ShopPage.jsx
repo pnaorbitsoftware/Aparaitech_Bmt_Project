@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { FaArrowLeft, FaSearch, FaMapMarkerAlt, FaPhone } from "react-icons/fa";
 
-const PUBLIC = axios.create({ baseURL: "http://localhost:5000/api" });
+const PUBLIC = axios.create({ baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api" });
 
 // Helper: safely format address object or string
 const formatAddress = (address) => {

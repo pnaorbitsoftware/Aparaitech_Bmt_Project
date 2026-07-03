@@ -28,13 +28,29 @@ if (!process.env.TWILIO_ACCOUNT_SID) {
 /* ======================
   Rate limiting configuration
 ====================== */
+const isPollingRequest = (req) => (
+  req.path === '/notifications' ||
+  req.path === '/notifications/' ||
+  /^\/delivery-partners\/(location|[^/]+\/location)$/.test(req.path)
+);
+
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  max: Number(process.env.API_RATE_LIMIT_MAX) || 300,
   message: 'Too many requests from this IP, please try again after 15 minutes',
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => req.path === '/api/health' // Skip rate limiting for health check
+  skip: isPollingRequest,
+});
+
+// Live location and notification polling are expected to be frequent. Keep a
+// separate generous ceiling so they cannot exhaust the general API allowance.
+const pollingLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: Number(process.env.POLLING_RATE_LIMIT_MAX) || 600,
+  message: 'Too many live update requests, please wait before retrying',
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
 const authLimiter = rateLimit({
@@ -110,6 +126,9 @@ app.use(helmet({
 }));
 
 // Rate limiting
+app.use('/api/notifications', pollingLimiter);
+app.use('/api/delivery-partners/location', pollingLimiter);
+app.use('/api/delivery-partners/:id/location', pollingLimiter);
 app.use('/api', limiter);
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
@@ -207,6 +226,7 @@ const startServer = async () => {
     const userRoutes = require("./routes/userRoutes");
     const productRoutes = require("./routes/productRoutes");
     const orderRoutes = require("./routes/ordersRoutes");
+    const notificationRoutes = require("./routes/notificationRoutes");
 
     // Mount routes
     app.use("/api/auth", authRoutes);
@@ -225,6 +245,7 @@ const startServer = async () => {
     app.use("/api/delivery-partners", deliveryPartnerRoutes);
     app.use("/api/products", productRoutes);
     app.use("/api/orders", orderRoutes);
+    app.use("/api/notifications", notificationRoutes);
 
     /* ======================
        HEALTH CHECK
@@ -279,9 +300,9 @@ const startServer = async () => {
         return res.status(409).json({ message: 'Duplicate key error' });
       }
       
-      // Default error
-      res.status(500).json({ 
-        message: 'Something went wrong!',
+      const status = err.statusCode || err.status || 500;
+      res.status(status).json({
+        message: status === 500 ? 'Something went wrong!' : err.message,
         error: process.env.NODE_ENV === 'development' ? err.message : undefined
       });
     });
@@ -291,6 +312,15 @@ const startServer = async () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`🔍 Health check: http://localhost:${PORT}/health`);
       console.log(`🛡️  Security: Helmet enabled, Rate limiting active`);
+    });
+
+    server.on('error', (error) => {
+      if (error.code === 'EADDRINUSE') {
+        console.error(`❌ Port ${PORT} is already in use. Stop the other process or set a different PORT.`);
+      } else {
+        console.error('❌ HTTP server error:', error.message);
+      }
+      process.exit(1);
     });
 
     // Graceful shutdown

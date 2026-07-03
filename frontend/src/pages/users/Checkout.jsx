@@ -11,6 +11,7 @@ export default function Checkout() {
   const [address, setAddress] = useState({ name:"", phone:"", street:"", city:"", state:"", pincode:"" });
   const [paymentMethod, setPaymentMethod] = useState("COD");
   const [activeField, setActiveField] = useState(null);
+  const [paymentError, setPaymentError] = useState("");
   const user = JSON.parse(localStorage.getItem("user") || "{}");
 
   useEffect(() => {
@@ -28,32 +29,82 @@ export default function Checkout() {
     return t;
   }, 0);
 
+  const loadRazorpay = () => new Promise((resolve) => {
+    if (window.Razorpay) return resolve(true);
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+
+  const orderPayload = () => {
+    const saved = JSON.parse(localStorage.getItem("userLocation") || "null");
+    return {
+      storeId: cartItems[0]?.storeId?._id || cartItems[0]?.storeId || null,
+      items: cartItems.map(item => ({ productId: item._id || item.id || "", name: item.name, quantity: item.quantity })),
+      address,
+      customerLocation: saved?.lat != null && saved?.lng != null ? { latitude: saved.lat, longitude: saved.lng } : undefined,
+    };
+  };
+
+  const finishOrder = () => {
+    localStorage.removeItem("cart");
+    window.dispatchEvent(new Event("cartUpdated"));
+    navigate("/order-success");
+  };
+
   const handlePlaceOrder = async () => {
     if (!address.name || !address.phone || !address.street || !address.city || !address.pincode) {
       alert("Please fill all address fields"); return;
     }
     if (cartItems.length === 0) { alert("Your cart is empty"); return; }
-    const storeId = cartItems[0]?.storeId?._id || cartItems[0]?.storeId || null;
     try {
       setPlacing(true);
-      await API.post("/orders/place", {
-        userId: user.id || user._id,
-        storeId,
-        items: cartItems.map(item => ({ productId: item._id || item.id || "", name: item.name, price: item.price, quantity: item.quantity })),
-        address,
-        paymentMethod,
-        itemsTotal,
-        deliveryCharge: delivery,
-        gst,
-        totalAmount: grandTotal,
-        status: "Placed"
+      setPaymentError("");
+      if (paymentMethod === "COD") {
+        await API.post("/orders/place", orderPayload());
+        finishOrder();
+        return;
+      }
+
+      if (!await loadRazorpay()) throw new Error("Could not load secure payment checkout");
+      const { data } = await API.post("/orders/payment/create", orderPayload());
+      await new Promise((resolve, reject) => {
+        let completed = false;
+        const checkout = new window.Razorpay({
+          key: data.keyId,
+          amount: data.amount,
+          currency: data.currency,
+          name: "SmartStore",
+          description: "Order payment",
+          order_id: data.razorpayOrderId,
+          prefill: { name: address.name, contact: address.phone, email: user.email || "" },
+          theme: { color: "#1a9c3e" },
+          handler: async (response) => {
+            try {
+              await API.post("/orders/payment/verify", { orderId: data.orderId, ...response });
+              completed = true;
+              finishOrder();
+              resolve();
+            } catch (error) { reject(error); }
+          },
+          modal: { ondismiss: async () => {
+            if (completed) return;
+            await API.post(`/orders/payment/${data.orderId}/failure`, { state: "cancelled", reason: "Checkout closed by customer" }).catch(() => {});
+            reject(new Error("Payment was cancelled"));
+          } },
+        });
+        checkout.on("payment.failed", async (event) => {
+          const reason = event.error?.description || "Payment failed";
+          await API.post(`/orders/payment/${data.orderId}/failure`, { state: "failed", reason }).catch(() => {});
+          reject(new Error(reason));
+        });
+        checkout.open();
       });
-      localStorage.removeItem("cart");
-      window.dispatchEvent(new Event("cartUpdated"));
-      navigate("/order-success");
     } catch (error) {
       console.error(error);
-      alert("Failed to place order. Please try again.");
+      setPaymentError(error.response?.data?.message || error.message || "Failed to place order. Please try again.");
     } finally {
       setPlacing(false);
     }
@@ -61,8 +112,7 @@ export default function Checkout() {
 
   const PAYMENT_OPTIONS = [
     { id:"COD",  label:"Cash on Delivery",    sub:"Pay when your order arrives",     icon:<FaMoneyBillWave size={20} color="#1a9c3e" />, color:"#e8f5e9" },
-    { id:"UPI",  label:"UPI Payment",          sub:"Google Pay, PhonePe, Paytm",      icon:<FaWallet size={20} color="#6366f1" />,        color:"#f0f0ff" },
-    { id:"Card", label:"Credit / Debit Card",  sub:"Visa, Mastercard, Rupay",         icon:<FaCreditCard size={20} color="#3b82f6" />,     color:"#eff6ff" },
+    { id:"Razorpay", label:"Pay Online", sub:"UPI, cards, wallets via Razorpay", icon:<FaWallet size={20} color="#6366f1" />, color:"#f0f0ff" },
   ];
 
   const ADDRESS_FIELDS = [
@@ -154,7 +204,7 @@ export default function Checkout() {
             <div style={{ fontWeight:800, fontSize:16, color:"#111" }}>Delivery Address</div>
           </div>
           <div style={{ padding:"16px 20px" }}>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))", gap:12 }}>
               {ADDRESS_FIELDS.map(field => (
                 <div key={field.key} style={{ gridColumn: field.full ? "1 / -1" : "auto" }}>
                   <label style={{ fontSize:11, fontWeight:700, color: activeField === field.key ? "#1a9c3e" : "#6b7280", display:"block", marginBottom:6, transition:"color 0.2s", textTransform:"uppercase", letterSpacing:"0.5px" }}>
@@ -251,10 +301,11 @@ export default function Checkout() {
       {/* ── STICKY PLACE ORDER ── */}
       <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"white", padding:"16px 20px", borderTop:"1px solid #e5e7eb", zIndex:50, boxShadow:"0 -4px 24px rgba(0,0,0,0.1)" }}>
         <div style={{ maxWidth:680, margin:"0 auto" }}>
+          {paymentError && <div role="alert" style={{ marginBottom:8, borderRadius:10, background:"#fef2f2", color:"#b91c1c", padding:"8px 12px", fontSize:12, fontWeight:600 }}>{paymentError}</div>}
           {/* Mini bill preview */}
           <div style={{ display:"flex", justifyContent:"space-between", fontSize:12, color:"#9ca3af", marginBottom:10 }}>
             <span>{cartItems.length} items • GST included</span>
-            <span>{paymentMethod === "COD" ? "💵 Pay on delivery" : paymentMethod === "UPI" ? "📱 UPI payment" : "💳 Card payment"}</span>
+            <span>{paymentMethod === "COD" ? "💵 Pay on delivery" : "🔒 Secure online payment"}</span>
           </div>
           <button onClick={handlePlaceOrder} disabled={placing || cartItems.length === 0}
             style={{ width:"100%", background: placing ? "#9ca3af" : "linear-gradient(135deg,#1a9c3e,#0d5c24)", color:"white", border:"none", borderRadius:18, padding:"0 24px", height:58, fontSize:16, fontWeight:800, cursor: placing || cartItems.length === 0 ? "not-allowed" : "pointer", fontFamily:"'DM Sans',sans-serif", display:"flex", alignItems:"center", justifyContent:"space-between", boxShadow: placing ? "none" : "0 6px 24px rgba(26,156,62,0.4)", transition:"all 0.2s", letterSpacing:"-0.2px" }}>

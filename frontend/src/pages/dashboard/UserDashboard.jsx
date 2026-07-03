@@ -9,7 +9,7 @@ import {
 import { IoFlash } from "react-icons/io5";
 import CartDrawer from "../../components/user/CartDrawer";
 
-const PUBLIC = axios.create({ baseURL: "http://localhost:5000/api" });
+const PUBLIC = axios.create({ baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api" });
 
 // Category emoji map — shown only for categories that exist in DB
 const CATEGORY_EMOJI = {
@@ -84,8 +84,7 @@ export default function UserDashboard() {
     navigator.geolocation.getCurrentPosition(
       async pos => {
         try {
-          const r = await fetch(`http://localhost:5000/api/users/geocode?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`);
-          const d = await r.json();
+          const { data: d } = await PUBLIC.get(`/users/geocode?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`);
           setLocation(d.address?.city || d.address?.town || d.address?.village || "Your City");
         } catch { setLocation("Location found"); }
       },

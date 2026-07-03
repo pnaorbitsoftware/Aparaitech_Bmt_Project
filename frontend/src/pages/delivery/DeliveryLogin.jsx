@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { FaMotorcycle, FaEye, FaEyeSlash } from "react-icons/fa";
 
-const API = axios.create({ baseURL: "http://localhost:5000/api" });
+const API = axios.create({ baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api" });
 
 export default function DeliveryLogin() {
   const navigate = useNavigate();

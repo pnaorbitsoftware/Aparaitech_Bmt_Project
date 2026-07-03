@@ -128,8 +128,7 @@ function LiveTrackingMap({ deliveryPartnerId, deliveryPartnerName }) {
 
   const fetchLocation = async () => {
     try {
-      const res = await fetch(`http://localhost:5000/api/delivery-partners/${deliveryPartnerId}/location`);
-      const data = await res.json();
+      const { data } = await API.get(`/delivery-partners/${deliveryPartnerId}/location`);
       if (data.location?.lat && data.location?.lng) {
         setLocation(data.location);
         setLastUpdated(new Date());

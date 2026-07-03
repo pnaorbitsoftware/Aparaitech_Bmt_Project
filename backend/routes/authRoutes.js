@@ -46,7 +46,7 @@ async function createAndSendOtp(email, purpose) {
       expiresAt: new Date(Date.now() + 10 * 60 * 1000),
       lastSentAt: new Date(),
     },
-    { upsert: true, new: true, setDefaultsOnInsert: true }
+    { upsert: true, returnDocument: "after", setDefaultsOnInsert: true }
   );
 
   try {

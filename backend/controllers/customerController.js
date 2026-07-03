@@ -207,7 +207,7 @@ exports.deleteCustomer = async (req, res) => {
     const customer = await Customer.findByIdAndUpdate(
       req.params.id,
       { status: 'INACTIVE' },
-      { new: true }
+      { returnDocument: "after" }
     );
 
     if (!customer) {

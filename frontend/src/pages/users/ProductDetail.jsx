@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { FaArrowLeft, FaStar, FaFire } from "react-icons/fa";
 
-const PUBLIC = axios.create({ baseURL: "http://localhost:5000/api" });
+const PUBLIC = axios.create({ baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api" });
 
 export default function ProductDetail() {
   const { productId } = useParams();

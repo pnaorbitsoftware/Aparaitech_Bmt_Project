@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import AdminProfile from "../../pages/users/AdminProfile";  // ✅ Fixed import
+import NotificationMenu from "../common/NotificationMenu";
 
 function Topbar() {
   const [showProfile, setShowProfile] = useState(false);
@@ -30,7 +31,8 @@ function Topbar() {
       />
 
       {/* Profile */}
-      <div className="relative">
+      <div className="relative flex items-center gap-3">
+        <NotificationMenu />
         <button
           onClick={() => setShowProfile(!showProfile)}
           className="flex items-center gap-3 bg-green-100 px-4 py-2 rounded-full hover:bg-green-200 transition"

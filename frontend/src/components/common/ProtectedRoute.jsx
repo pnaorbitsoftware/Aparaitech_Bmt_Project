@@ -17,7 +17,13 @@ function ProtectedRoute({ children, roles }) {
   }
 
   if (roles && !roles.includes(user.role)) {
-    return <Navigate to="/login" replace />;
+    const homeByRole = {
+      user: "/user-dashboard",
+      super_admin: "/super-admin-dashboard",
+      admin: "/dashboard",
+      staff: "/dashboard",
+    };
+    return <Navigate to={homeByRole[user.role] || "/login"} replace />;
   }
 
   return children;

@@ -105,7 +105,7 @@ exports.updateVendor = async (req, res) => {
       id,
       updateData,
       { 
-        new: true, // Return the updated document
+        returnDocument: "after", // Return the updated document
         runValidators: true // Run validation on update
       }
     );

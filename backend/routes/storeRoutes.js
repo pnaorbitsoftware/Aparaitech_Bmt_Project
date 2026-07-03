@@ -164,7 +164,7 @@ router.put("/:id", verifyToken, allowRole(["super_admin"]), async (req, res) => 
     const store = await Store.findByIdAndUpdate(
       req.params.id,
       { ...rest, categories, storeType: resolvedStoreType },
-      { new: true, runValidators: true }
+      { returnDocument: "after", runValidators: true }
     ).populate("admin", "name email");
 
     res.json({ success: true, message: "Store updated", data: store });

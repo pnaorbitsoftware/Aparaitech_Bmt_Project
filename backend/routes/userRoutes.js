@@ -5,6 +5,7 @@ const verifyToken = require("../middleware/authMiddleware");
 const allowRole = require("../middleware/roleMiddleware");
 const { getRegisteredUsers } = require("../controllers/userController");
 const axios = require("axios");
+const User = require("../models/User");
 
 
 router.get("/geocode", async (req, res) => {
@@ -24,6 +25,18 @@ router.get("/geocode", async (req, res) => {
 // ==================== PROFILE ROUTES (any authenticated user) ====================
 router.get("/profile", verifyToken, userController.getProfile);
 router.put("/profile", verifyToken, userController.updateProfile);
+router.put("/location", verifyToken, async (req, res, next) => {
+  try {
+    const latitude = Number(req.body.latitude);
+    const longitude = Number(req.body.longitude);
+    if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90 || !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
+      return res.status(400).json({ message: "Valid latitude and longitude are required" });
+    }
+    const user = await User.findByIdAndUpdate(req.user.id, { location: { latitude, longitude, updatedAt: new Date() } }, { returnDocument: "after" }).select("location");
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json({ success: true, location: user.location });
+  } catch (error) { next(error); }
+});
 
 // ==================== ADMIN SELF-SERVICE STAFF ROUTES ====================
 // Admin manages their own store's staff
