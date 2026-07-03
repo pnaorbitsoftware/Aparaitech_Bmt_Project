@@ -39,6 +39,125 @@ const Skeleton = ({ w = "100%", h = 16, r = 8 }) => (
   <div style={{ width: w, height: h, borderRadius: r, background: "linear-gradient(90deg,#e5e7eb 25%,#f3f4f6 50%,#e5e7eb 75%)", backgroundSize: "400% 100%", animation: "shimmer 1.4s ease infinite" }} />
 );
 
+const PromoBanner = ({ isMobile }) => {
+  const [index, setIndex] = useState(0);
+
+  const images = [
+    "https://images.pexels.com/photos/825661/pexels-photo-825661.jpeg",
+    "https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg",
+    "https://images.pexels.com/photos/230477/pexels-photo-230477.jpeg",
+    "https://images.pexels.com/photos/958545/pexels-photo-958545.jpeg"
+  ];
+
+  useEffect(() => {
+    console.log("Setting up interval");
+    const interval = setInterval(() => {
+      setIndex((prev) => (prev + 1) % images.length);
+    }, 3000);
+    return () => {
+      console.log("Cleaning up interval");
+      clearInterval(interval);
+    };
+  }, []); // Remove images.length dependency
+
+  return (
+    <div style={{ borderRadius: isMobile ? 20 : 24, overflow: "hidden" }}>
+      <div
+        style={{
+          position: "relative",
+          height: isMobile ? 220 : 300,
+          overflow: "hidden",
+          width: "100%"
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            width: `${images.length * 100}%`,
+            transform: `translateX(-${index * (100 / images.length)}%)`,
+            transition: "transform 0.8s ease-in-out",
+            height: "100%"
+          }}
+        >
+          {images.map((img, i) => (
+            <img
+              key={i}
+              src={img}
+              alt="food"
+              style={{
+                width: `${100 / images.length}%`,
+                height: "100%",
+                objectFit: "cover",
+                flexShrink: 0
+              }}
+            />
+          ))}
+        </div>
+
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "linear-gradient(90deg, rgba(0,0,0,0.75), rgba(0,0,0,0.2))"
+          }}
+        />
+
+        <div
+          style={{
+            position: "absolute",
+            top: "50%",
+            left: isMobile ? "50%" : 50,
+            transform: isMobile ? "translate(-50%, -50%)" : "translateY(-50%)",
+            color: "white",
+            zIndex: 2,
+            textAlign: isMobile ? "center" : "left"
+          }}
+        >
+          <div style={{ fontSize: isMobile ? 34 : 56, fontWeight: 900, color: "#facc15" }}>
+            50% OFF
+          </div>
+          <div style={{ fontSize: isMobile ? 20 : 30, fontWeight: 800 }}>
+            Hot & Fresh Deals 🍕
+          </div>
+          <div style={{ marginTop: 8, opacity: 0.9 }}>
+            Fast Delivery • Best Taste
+          </div>
+          <div style={{ marginTop: 14, background: "white", borderRadius: 50, padding: "8px 20px", display: "inline-block" }}>
+            <span style={{ fontWeight: 800, color: "#1a9c3e" }}>Use Code: TRY50</span>
+          </div>
+        </div>
+
+        <div
+          style={{
+            position: "absolute",
+            bottom: 12,
+            left: "50%",
+            transform: "translateX(-50%)",
+            display: "flex",
+            gap: 6,
+            zIndex: 2
+          }}
+        >
+          {images.map((_, i) => (
+            <div
+              key={i}
+              onClick={() => setIndex(i)}
+              style={{
+                width: index === i ? 16 : 8,
+                height: 8,
+                borderRadius: 20,
+                background: index === i ? "#facc15" : "rgba(255,255,255,0.5)",
+                transition: "all 0.3s",
+                cursor: "pointer"
+              }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function UserDashboard() {
   const navigate    = useNavigate();
   const [stores, setStores]         = useState([]);
@@ -136,27 +255,157 @@ export default function UserDashboard() {
   };
 
   /* ── Shared blocks ── */
-  const PromoBanner = () => (
-    <div style={{ borderRadius: isMobile ? 20 : 24, overflow: "hidden" }}>
-      <div style={{ background: "linear-gradient(135deg,#1a9c3e 0%,#0d5c24 100%)", padding: isMobile ? "28px 24px 24px" : "36px 40px 32px", position: "relative", overflow: "hidden", display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: "center", gap: isMobile ? 0 : 40, textAlign: isMobile ? "center" : "left" }}>
-        {[...Array(16)].map((_, i) => (
-          <div key={i} style={{ position: "absolute", top: "50%", left: "50%", width: 1, height: "80%", background: "rgba(255,255,255,0.05)", transformOrigin: "0 0", transform: `rotate(${i * 22.5}deg) translateX(-50%)` }} />
-        ))}
-        {["top:16px;left:18px", "top:20px;right:28px", "bottom:24px;left:32px", "bottom:16px;right:18px"].map((p, i) => (
-          <div key={i} style={{ position: "absolute", ...Object.fromEntries(p.split(";").map(s => s.split(":"))), color: "rgba(255,255,255,0.35)", fontSize: [18,13,11,15][i] }}>✦</div>
-        ))}
-        <div style={{ position: "relative", zIndex: 1, flex: 1 }}>
-          <div style={{ fontWeight: 900, fontSize: isMobile ? 44 : 58, color: "#facc15", letterSpacing: "-1px", lineHeight: 1, textShadow: "0 3px 16px rgba(0,0,0,0.3)" }}>50% OFF</div>
-          <div style={{ fontWeight: 900, fontSize: isMobile ? 28 : 36, color: "white", letterSpacing: "2px", marginTop: -4, textShadow: "0 2px 8px rgba(0,0,0,0.2)" }}>UNLOCKED 🔓</div>
-          <div style={{ color: "rgba(255,255,255,0.85)", fontSize: isMobile ? 13 : 14, fontWeight: 600, marginTop: 8, letterSpacing: "1px" }}>~ FREE DELIVERY ~</div>
-          <div style={{ marginTop: 16, display: "inline-block", background: "white", borderRadius: 50, padding: isMobile ? "8px 24px" : "10px 28px" }}>
-            <span style={{ fontWeight: 800, fontSize: isMobile ? 14 : 15, color: "#1a9c3e" }}>Use Code: TRY50</span>
-          </div>
-        </div>
-        {!isMobile && <div style={{ fontSize: 90, position: "relative", zIndex: 1, flexShrink: 0, animation: "pulse2 2.5s infinite" }}>🎉</div>}
-      </div>
-    </div>
-  );
+  // const PromoBanner = ({ isMobile }) => {  // ← Add isMobile as a prop
+  //   const [index, setIndex] = useState(0);
+  //   console.log("Current index:", index); 
+  
+  //   const images = [
+  //     "https://images.pexels.com/photos/825661/pexels-photo-825661.jpeg", // pizza
+  //     "https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg", // burger
+  //     "https://images.pexels.com/photos/230477/pexels-photo-230477.jpeg", // tea
+  //     "https://images.pexels.com/photos/958545/pexels-photo-958545.jpeg" // indian food
+  //   ];
+  
+  //   useEffect(() => {
+  //     const interval = setInterval(() => {
+  //       setIndex((prev) => (prev + 1) % images.length);
+  //     }, 3000);
+  //     return () => clearInterval(interval);
+  //   }, []);
+  
+  //   return (
+  //     <div style={{ borderRadius: isMobile ? 20 : 24, overflow: "hidden" }}>
+        
+  //       {/* SLIDER CONTAINER */}
+  //       <div
+  //         style={{
+  //           position: "relative",
+  //           height: isMobile ? 220 : 300,
+  //           overflow: "hidden",
+  //           width: "100%",
+  //           touchAction: "pan-y pinch-zoom"
+  //         }}
+  //       >
+          
+  //         {/* SLIDER TRACK */}
+  //         <div
+  //           style={{
+  //             display: "flex",
+  //             width: `${images.length * 100}%`,
+  //             transform: `translateX(-${index * (100 / images.length)}%)`,
+  //             transition: "transform 0.8s ease-in-out",
+  //             height: "100%"
+  //           }}
+  //         >
+  //           {images.map((img, i) => (
+  //             <img
+  //               key={i}
+  //               src={img}
+  //               alt="food"
+  //               style={{
+  //                 width: `${100 / images.length}%`,
+  //                 height: "100%",
+  //                 objectFit: "cover",
+  //                 flexShrink: 0  // ← Add this to prevent shrinking
+  //               }}
+  //             />
+  //           ))}
+  //         </div>
+  
+  //         {/* DARK OVERLAY */}
+  //         <div
+  //           style={{
+  //             position: "absolute",
+  //             inset: 0,
+  //             background:
+  //               "linear-gradient(90deg, rgba(0,0,0,0.75), rgba(0,0,0,0.2))"
+  //           }}
+  //         />
+  
+  //         {/* TEXT CONTENT */}
+  //         <div
+  //           style={{
+  //             position: "absolute",
+  //             top: "50%",
+  //             left: isMobile ? "50%" : 50,
+  //             transform: isMobile
+  //               ? "translate(-50%, -50%)"
+  //               : "translateY(-50%)",
+  //             color: "white",
+  //             zIndex: 2,
+  //             textAlign: isMobile ? "center" : "left"
+  //           }}
+  //         >
+  //           <div
+  //             style={{
+  //               fontSize: isMobile ? 34 : 56,
+  //               fontWeight: 900,
+  //               color: "#facc15"
+  //             }}
+  //           >
+  //             50% OFF
+  //           </div>
+  
+  //           <div
+  //             style={{
+  //               fontSize: isMobile ? 20 : 30,
+  //               fontWeight: 800
+  //             }}
+  //           >
+  //             Hot & Fresh Deals 🍕
+  //           </div>
+  
+  //           <div style={{ marginTop: 8, opacity: 0.9 }}>
+  //             Fast Delivery • Best Taste
+  //           </div>
+  
+  //           <div
+  //             style={{
+  //               marginTop: 14,
+  //               background: "white",
+  //               borderRadius: 50,
+  //               padding: "8px 20px",
+  //               display: "inline-block"
+  //             }}
+  //           >
+  //             <span style={{ fontWeight: 800, color: "#1a9c3e" }}>
+  //               Use Code: TRY50
+  //             </span>
+  //           </div>
+  //         </div>
+  
+  //         {/* DOT INDICATORS */}
+  //         <div
+  //           style={{
+  //             position: "absolute",
+  //             bottom: 12,
+  //             left: "50%",
+  //             transform: "translateX(-50%)",
+  //             display: "flex",
+  //             gap: 6,
+  //             zIndex: 2
+  //           }}
+  //         >
+  //           {images.map((_, i) => (
+  //             <div
+  //               key={i}
+  //               onClick={() => setIndex(i)}  // ← Add click to navigate manually
+  //               style={{
+  //                 width: index === i ? 16 : 8,
+  //                 height: 8,
+  //                 borderRadius: 20,
+  //                 background: index === i ? "#facc15" : "rgba(255,255,255,0.5)",
+  //                 transition: "all 0.3s",
+  //                 cursor: "pointer"  // ← Add cursor pointer
+  //               }}
+  //             />
+  //           ))}
+  //         </div>
+  
+  //       </div>
+  //     </div>
+  //   );
+  // };
 
   const WelcomeGift = () => (
     <div style={{ background: "#fffde7", borderRadius: isMobile ? 18 : 20, padding: isMobile ? "16px 18px" : "20px 24px", border: "1px solid #fde68a", display: "flex", gap: 14, alignItems: "flex-start" }}>
@@ -269,7 +518,7 @@ export default function UserDashboard() {
           </div>
 
           {/* Promo */}
-          <div style={{ margin: "16px 14px" }}><PromoBanner /></div>
+          <div style={{ margin: "16px 14px" }}><PromoBanner isMobile={isMobile} /></div>
 
           {/* Welcome gift */}
           <div style={{ margin: "0 14px 20px" }}><WelcomeGift /></div>
@@ -474,15 +723,68 @@ export default function UserDashboard() {
           </div>
 
           {/* Offer card */}
-          <div style={{ background: "linear-gradient(135deg,#1a9c3e,#0d5c24)", borderRadius: 20, padding: "20px 18px", textAlign: "center", boxShadow: "0 4px 20px rgba(26,156,62,0.25)" }}>
-            <div style={{ fontSize: 36, marginBottom: 8 }}>🎁</div>
-            <div style={{ fontWeight: 900, fontSize: 20, color: "#facc15", letterSpacing: "-0.3px" }}>50% OFF</div>
-            <div style={{ fontWeight: 700, fontSize: 13, color: "white", marginTop: 4 }}>Use code TRY50</div>
-            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.75)", marginTop: 4 }}>Min order ₹99 • Free delivery</div>
-            <div style={{ marginTop: 14, background: "white", borderRadius: 50, padding: "8px 16px" }}>
-              <span style={{ fontWeight: 800, fontSize: 13, color: "#1a9c3e" }}>TRY50</span>
-            </div>
-          </div>
+          <div
+  style={{
+    position: "relative",
+    borderRadius: 20,
+    overflow: "hidden",
+    height: 180,
+    boxShadow: "0 6px 20px rgba(0,0,0,0.15)"
+  }}
+>
+  {/* IMAGE */}
+  <img
+    src="https://images.pexels.com/photos/825661/pexels-photo-825661.jpeg"
+    alt="food"
+    style={{
+      width: "100%",
+      height: "100%",
+      objectFit: "cover"
+    }}
+  />
+
+  {/* DARK OVERLAY */}
+  <div
+    style={{
+      position: "absolute",
+      inset: 0,
+      background: "linear-gradient(180deg, rgba(0,0,0,0.2), rgba(0,0,0,0.7))"
+    }}
+  />
+
+  {/* TEXT CONTENT */}
+  <div
+    style={{
+      position: "absolute",
+      bottom: 14,
+      left: 14,
+      color: "white"
+    }}
+  >
+    <div style={{ fontWeight: 900, fontSize: 18, color: "#facc15" }}>
+      50% OFF
+    </div>
+
+    <div style={{ fontSize: 13, marginTop: 2 }}>
+      Hot & Fresh Deals 🍕
+    </div>
+
+    <div
+      style={{
+        marginTop: 6,
+        background: "white",
+        color: "#1a9c3e",
+        borderRadius: 50,
+        padding: "4px 12px",
+        fontSize: 12,
+        fontWeight: 700,
+        display: "inline-block"
+      }}
+    >
+      TRY50
+    </div>
+  </div>
+</div>
 
           {/* Trust badges */}
           <div style={{ background: "white", borderRadius: 20, padding: "16px 18px", boxShadow: "0 2px 16px rgba(0,0,0,0.07)" }}>
@@ -506,7 +808,7 @@ export default function UserDashboard() {
         <main style={{ minWidth: 0 }}>
 
           {/* Promo */}
-          <div style={{ marginBottom: 20 }}><PromoBanner /></div>
+          <div style={{ marginBottom: 20 }}><PromoBanner isMobile={isMobile} /></div>
 
           {/* Welcome gift */}
           <div style={{ marginBottom: 24 }}><WelcomeGift /></div>
